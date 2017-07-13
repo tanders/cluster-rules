@@ -16,19 +16,16 @@
   :description "Rules defined for the cluster-engine by Orjan Sandred." 
   :author "Torsten Anders"
   :version "0.001"
-  :default-component-class ccl::pwgl-source-file
+  ;; :default-component-class ccl::pwgl-source-file
   :serial t ;; the dependencies are linear.
   :components ((:file "sources/package")
 	       (:file "sources/utils")
 	       ;; depends on ENP
 	       ;; (:file "sources/score")
 	       (:file "sources/rhythm-rules")
-	       #|
 	       (:file "sources/melody-rules")
 	       (:file "sources/harmony-rules")
 	       (:file "sources/counterpoint-rules")
-	       |#
-	       ;; not exporting anything currently...
 	       (:file "sources/export")
 	       ;; (:file "sources/menus")
 	       )

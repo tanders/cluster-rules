@@ -13,7 +13,7 @@
 ;;; *************************************************************
 
 (defpackage :cluster-rules
-  (:nicknames :rule)
+  (:nicknames :rule :cr)
   (:use :common-lisp :cluster-engine))  ;  :pw
 
 #|

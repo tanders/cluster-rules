@@ -1,7 +1,7 @@
 ;;; -*- Mode:Lisp; Syntax:ANSI-Common-Lisp; -*-
 
 ;;; *************************************************************
-;;; Copyright (C) 2013 Torsten Anders (torsten.anders@beds.ac.uk) 
+;;; Copyright (C) 2017 Torsten Anders (torsten.anders@beds.ac.uk) 
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License
 ;;; as published by the Free Software Foundation; either version 3
@@ -12,11 +12,27 @@
 ;;; GNU General Public License for more details.
 ;;; *************************************************************
 
+;;;
+;;; TODO:
+;;; - Update rules avoiding PWGL dependencies
+;;;   - follow-timed-profile-hr
+;;;   - follow-profile-hr
+;;;   - follow-interval-profile
+;;;   - mp-add-random-offset, trfm-scale, trfm-add-BPF, trfm-multiply-BPF
+;;;   - min/max-interval
+;;;   - prefer-interval-hr
+;;;   - accumulative-interval
+;;;
+;;;
+;;;
+
+
 (in-package :cluster-rules)
 
 
 ;; follow-timed-profile-hr
 
+#|
 ;; TODO:
 ;; - BUG: In pitch mode, rests (NIL) not (fully) treated -- resulting in errors like 
 ;;    An error occured: In - of (67 NIL) arguments should be of type NUMBER.
@@ -209,11 +225,12 @@ Other arguments are inherited by hr-rhythm-pitch-one-voice.
 		      my-voices
 		      (if (listp start) start (make-list voices-length :initial-element start))
 		      (if (and (listp end) (not (null end))) end (make-list voices-length :initial-element end))))))
-
+|#
 
 
 ;; follow-profile-hr
 
+#|
 ;; TODO:
 ;; - Allow for a list of lists/BPFs/scores.
 ;; - !! Efficiency: change mapped-profile from list into array/vector for faster access during search -- see PWConstraints example.. 
@@ -333,8 +350,9 @@ BUG: Rhythm not really constrained?
 		      (case mode
 			(:pitch :all-pitches)
 			(:rhythm :list-with-all-durations))))))
+|#
 
-
+#|
 (PWGLDef follow-interval-profile  
 	 ((voices 0)
 	  (n 0)
@@ -413,7 +431,7 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
 			T)))
 	      voices
 	      :all-pitches))))
-	 
+|#	 
 
 
 ;; Some mapping functions for pitch-profile-hr or rhythm-profile-hr
@@ -431,6 +449,7 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
   "Returns a mapping function for pitch-profile-hr or rhythm-profile-hr. factor is multiplied to the original value."
   #'(lambda (x) (* x factor)))
 
+#|
 (defun mp-add-random-offset (max-random-offset)
   "Returns a mapping function for pitch-profile-hr or rhythm-profile-hr. max-random-offset is the maximun random deviation, above or below the original value."
   #'(lambda (x) 
@@ -453,6 +472,7 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. To each original value the corresponding BPF vcalue is multiplied."
   #'(lambda (xs) 
       (mapcar #'* xs (ccl::pwgl-sample BPF (length xs)))))
+|#
 
 (defun trfm-reverse (min max)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. The original value sequence is reversed."
@@ -462,35 +482,34 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
 
 ;; no-direct-repetition
 
-(PWGLDef no-direct-repetition ((voices 0)			
-			       &optional
-			       (rule-type  () (ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")))
+(defun no-direct-repetition (&key
+			       (voices 0)						       
+			       (rule-type :true/false) ; options: :true/false :heur-switch
 			       (weight 1))
-	 "Disallows any direct pitch repetition. 
+  "Disallows any direct pitch repetition. 
 
 Args: 
 voices: the number of the voice(s) to constrain.
 
 Optional arguments are inherited from r-pitches-one-voice."
-	 () 
-	 (r-pitches-one-voice #'(lambda (p1 p2) 
-				  (if (and p1 p2) ; no rests
-				      (/= p1 p2)
-				    T))
-			      voices
-			      :pitches
-			      rule-type weight))
+  (r-pitches-one-voice #'(lambda (p1 p2) 
+			   (if (and p1 p2) ; no rests
+			       (/= p1 p2)
+			       T))
+		       voices
+		       :pitches
+		       rule-type weight))
 
 
 ;; no-repetition
 
-(PWGLDef no-repetition ((voices 0)
+(defun no-repetition (&key
+			(voices 0)
 			(window 2)
-			(mode () (ccl::mk-menu-subview :menu-list '(":pitches" ":pcs")))			
-			&optional
-			(rule-type  () (ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")))
+			(mode :pitches) ; options: :pitches, :pcs
+			(rule-type :true/false) ; options: :true/false :heur-switch
 			(weight 1))
-	 "Disallows pitch repetitions within a window of a give number of notes.
+  "Disallows pitch repetitions within a window of a give number of notes.
 
 Args: 
 voices: the number of the voice(s) to constrain.
@@ -498,37 +517,37 @@ window: the number of notes among which no repetition should happen (if this is 
 mode: whether to disallow repeated pitches (:pitches) or pitch classes (:pcs).
 
 Optional arguments are inherited from r-pitches-one-voice."
-	 () 
-	 (r-pitches-one-voice #'(lambda (pitches) 
-				  (let* ((ps (mapcar #'(lambda (p)
-							 (case mode 
-							   (:pitches p)
-							   (:pcs (mod p 12))))
-						     (last pitches window)))
-					 (p1 (first (last ps))))
-				    (if p1 ; no rest
-					(not (member p1 (butlast ps)))
-					;; (progn (format t "no-repetition -- p: ~A, ps: ~A, result: ~A ~%"
-					;; 	       p1 (butlast ps) (not (member p1 (butlast ps))))
-					;;        (not (member p1 (butlast ps))))
-				      T)))
-			      voices
-			      :all-pitches
-			      rule-type weight))
+  (r-pitches-one-voice #'(lambda (pitches) 
+			   (let* ((ps (mapcar #'(lambda (p)
+						  (case mode 
+						    (:pitches p)
+						    (:pcs (mod p 12))))
+					      (last pitches window)))
+				  (p1 (first (last ps))))
+			     (if p1 ; no rest
+				 (not (member p1 (butlast ps)))
+				 ;; (progn (format t "no-repetition -- p: ~A, ps: ~A, result: ~A ~%"
+				 ;; 	       p1 (butlast ps) (not (member p1 (butlast ps))))
+				 ;;        (not (member p1 (butlast ps))))
+				 T)))
+		       voices
+		       :all-pitches
+		       rule-type weight))
 
 
 ;; min/max-melodic-interval
 
+#|
 ;; TODO: 
 ;; - !! Efficiency: use array/vector instead of list 
-(PWGLDef min/max-interval ((voices 0)
-			   &key
+(defun min/max-interval (&key
+			   (voices 0)
 			   (min-interval NIL)
 			   (max-interval NIL)
 			   (n 0)
-			   (rule-type  () (ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")))
+			   (rule-type :true/false) ; options: :true/false :heur-switch
 			   (weight 1))
-	 "Limit the minimum/maximum melodic interval for the given voice.
+  "Limit the minimum/maximum melodic interval for the given voice.
 
 Args: 
 voices (int or list of ints): the number of the voice(s) to constrain.
@@ -539,73 +558,72 @@ max-interval (number, BPF or NIL): maximum interval in semitones. Ignored if NIL
 n (int): The first n notes are affected. If 0, then n is disregarded. NOTE: if any BPF is set then make sure n is greater than 0.
 
 Args rule-type and weight inherited from r-pitches-one-voice."
-	 ()
-	 (if (some #'ccl::break-point-function-p (list min-interval max-interval))	   
-	     ;; one or both intervals are BPF  
-	     (flet ((make-intervals (min/max-interval)
-			"Transforms BPF (or scalar) interval into list/array of interval numbers."	    
-			(cond ((ccl::break-point-function-p min/max-interval)
-			       (if (> n 0)  
-				   (ccl::pwgl-sample min/max-interval (1- n))
-				 (progn (warn "Cannot sample BPF with n set to 0")
-					NIL)))
-			      ((numberp min/max-interval) (make-list n :initial-element min/max-interval))
-			      ((null min/max-interval) min/max-interval))))
-	       (let ((min-intervals (make-intervals min-interval))
-		     (max-intervals (make-intervals max-interval)))
-		 (r-pitches-one-voice #'(lambda (pitches)					  
-					  (let ((l (length pitches)))
-					    (if (and (>= l 2) (<= l n))
-						(let* ((last-pitches (last pitches 2))
-						       (pitch1 (second last-pitches))
-						       (pitch2 (first last-pitches)))
-						  (if (and pitch1 pitch2) ; no rests
-						      (let ((interval (abs (- pitch1 pitch2))))
-							(and (if min-intervals ;; TODO: efficiency: this test only required once
-								 (<= (nth (- l 2) min-intervals) interval)
-							       T)
-							     (if max-intervals ;; TODO: efficiency: this test only required once
-								 (progn 
-								   ;; (format t "min/max-interval -- interval: ~A, max-interval: ~A, result: ~A ~%"
-								   ;; 	   interval 
-								   ;; 	   (nth (- l 2) max-intervals)
-								   ;; 	   (<= interval (nth (- l 2) max-intervals)))
-								   (<= interval (nth (- l 2) max-intervals)))
-							       T)))
-						    T))
+  (if (some #'ccl::break-point-function-p (list min-interval max-interval))	   
+      ;; one or both intervals are BPF  
+      (flet ((make-intervals (min/max-interval)
+	       "Transforms BPF (or scalar) interval into list/array of interval numbers."	    
+	       (cond ((ccl::break-point-function-p min/max-interval)
+		      (if (> n 0)  
+			  (ccl::pwgl-sample min/max-interval (1- n))
+			  (progn (warn "Cannot sample BPF with n set to 0")
+				 NIL)))
+		     ((numberp min/max-interval) (make-list n :initial-element min/max-interval))
+		     ((null min/max-interval) min/max-interval))))
+	(let ((min-intervals (make-intervals min-interval))
+	      (max-intervals (make-intervals max-interval)))
+	  (r-pitches-one-voice #'(lambda (pitches)					  
+				   (let ((l (length pitches)))
+				     (if (and (>= l 2) (<= l n))
+					 (let* ((last-pitches (last pitches 2))
+						(pitch1 (second last-pitches))
+						(pitch2 (first last-pitches)))
+					   (if (and pitch1 pitch2) ; no rests
+					       (let ((interval (abs (- pitch1 pitch2))))
+						 (and (if min-intervals ;; TODO: efficiency: this test only required once
+							  (<= (nth (- l 2) min-intervals) interval)
+							  T)
+						      (if max-intervals ;; TODO: efficiency: this test only required once
+							  (progn 
+							    ;; (format t "min/max-interval -- interval: ~A, max-interval: ~A, result: ~A ~%"
+							    ;; 	   interval 
+							    ;; 	   (nth (- l 2) max-intervals)
+							    ;; 	   (<= interval (nth (- l 2) max-intervals)))
+							    (<= interval (nth (- l 2) max-intervals)))
+							  T)))
+					       T))
+					 T)))
+			       voices
+			       :all-pitches
+			       rule-type
+			       weight)))
+      ;; both intervals are scalars
+      (r-pitches-one-voice #'(lambda (pitch1 pitch2)
+			       (if (and pitch1 pitch2) ; no rests
+				   (let ((interval (abs (- pitch1 pitch2))))
+				     (and (if min-interval 
+					      (<= min-interval interval)
+					      T)
+					  (if max-interval 
+					      (<= interval max-interval)
 					      T)))
-					    voices
-					    :all-pitches
-					    rule-type
-					    weight)))
-	   ;; both intervals are scalars
-	   (r-pitches-one-voice #'(lambda (pitch1 pitch2)
-				    (if (and pitch1 pitch2) ; no rests
-					(let ((interval (abs (- pitch1 pitch2))))
-					  (and (if min-interval 
-						   (<= min-interval interval)
-						 T)
-					       (if max-interval 
-						   (<= interval max-interval)
-						 T)))
-				      T))
-				voices
-				:pitches
-				rule-type
-				weight)))
-
+				   T))
+			   voices
+			   :pitches
+			   rule-type
+			   weight)))
+|#
 
 ;; set-pcs
 
 ;; TODO: generalise for both pitches and PCs
-(PWGLDef set-pitches ((pitches ())
-		      (pcs? () (ccl::mk-menu-subview :menu-list '(":pitches" ":pcs")))
-		      (mode () (ccl::mk-menu-subview :menu-list '(":only-given" ":exclude-given")))
+(defun set-pitches (&key
 		      (voices 0)
-		      &optional
-		      (rule-type () (ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")))
+		      (pitches ())
+		      (pcs? :pitches) ; options: :pitches, :pcs		      
+		      (mode :only-given) ; options: :only-given, :exclude-given
+		      (rule-type :true/false) ; options: :true/false :heur-switch
 		      (weight 1))
-	 "Restricts the pitches to the pitches or PCs specified.
+  "Restricts the pitches to the pitches or PCs specified.
 
 Args:
   pitches (list of ints): Specified pitches.
@@ -613,32 +631,31 @@ Args:
   mode: Controls whether to only use the given intervals (:only-given), or whether to only use intervals that are not given (:exclude-given).
 
 Other arguments are inherited from R-pitches-one-voice."
-	 () 
-	 (let ((pcs (mapcar #'(lambda (p) (mod p 12)) pitches)))
-	   (R-pitches-one-voice #'(lambda (pitch)
-				    (if pitch ; no rests
-					(let ((member? (case pcs?
-							 (:pitches (member pitch pitches))
-							 (:pcs (member (mod pitch 12) pcs)))))
-					  (format T "set-pitches: pitch: ~A, pcs: ~A, member?: ~A~%"
-						  pitch pcs member?)
-					  (case mode
-					    (:only-given member?)
-					    (:exclude-given (not member?))))
-				      T))
-				voices :pitches rule-type weight)))
+  (let ((pcs (mapcar #'(lambda (p) (mod p 12)) pitches)))
+    (R-pitches-one-voice #'(lambda (pitch)
+			     (if pitch ; no rests
+				 (let ((member? (case pcs?
+						  (:pitches (member pitch pitches))
+						  (:pcs (member (mod pitch 12) pcs)))))
+				   (format T "set-pitches: pitch: ~A, pcs: ~A, member?: ~A~%"
+					   pitch pcs member?)
+				   (case mode
+				     (:only-given member?)
+				     (:exclude-given (not member?))))
+				 T))
+			 voices :pitches rule-type weight)))
 
 
 ;; set-intervals
 
-(PWGLDef set-intervals ((intervals ())
-			(absolute? () (ccl::mk-menu-subview :menu-list '(":absolute" ":up/down")))
-			(mode () (ccl::mk-menu-subview :menu-list '(":only-given" ":exclude-given")))
+(defun set-intervals (&key
+			(intervals ())
+			(absolute? :absolute) ; options: :absolute, :up/down
+			(mode :only-given) ; options: :only-given, :exclude-given
 			(voices 0)
-			&optional
-			(rule-type () (ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")))
+			(rule-type :true/false) ; options: :true/false :heur-switch
 			(weight 1))
-	 "Restricts the melodic intervals to those intervals specified. 
+  "Restricts the melodic intervals to those intervals specified. 
 
 Args:
   intervals (list of ints): Specified intervals.
@@ -646,25 +663,25 @@ Args:
   mode: Controls whether to only use the given intervals (:only-given), or whether to only use intervals that are not given (:exclude-given).
 
 Other arguments are inherited from R-pitches-one-voice."
-	 () 
-	 (R-pitches-one-voice #'(lambda (pitch1 pitch2)
-				  (if (and pitch1 pitch2) ; no rests
-				      (let* ((interval (- pitch2 pitch1))
-					     (member? (member (case absolute?
-								(:up/down interval)
-								(:absolute (abs interval)))
-							      (case absolute?
-								(:up/down intervals)
-								(:absolute (mapcar #'abs intervals))))))
-					(case mode
-					  (:only-given member?)
-					  (:exclude-given (not member?))))
-				    T))
-	   voices :pitches rule-type weight))
+  (R-pitches-one-voice #'(lambda (pitch1 pitch2)
+			   (if (and pitch1 pitch2) ; no rests
+			       (let* ((interval (- pitch2 pitch1))
+				      (member? (member (case absolute?
+							 (:up/down interval)
+							 (:absolute (abs interval)))
+						       (case absolute?
+							 (:up/down intervals)
+							 (:absolute (mapcar #'abs intervals))))))
+				 (case mode
+				   (:only-given member?)
+				   (:exclude-given (not member?))))
+			       T))
+		       voices :pitches rule-type weight))
 
 
 ;; prefer-interval-hr
 
+#|
 ;; TODO: translate list into vector for efficiency
 (PWGLDef prefer-interval-hr ((voices 0)
 			     (interval 1)
@@ -712,10 +729,12 @@ weight: factor for the heuristic weight.
 			       (if (= n 0)
 				   :pitches
 				   :pitch/nth)))
+|#
 
 
 ;; accumulative-interval
 
+#|
 ;; TODO:
 ;; - Rule for first n-1 notes ignored -- OK?
 ;; - Test rule further -- do settings work and make sense?
@@ -768,18 +787,18 @@ Other arguments are inherited from R-pitches-one-voice."
 		 (mappend #'rule-application
 			  (arithm-ser 2 1 n))
 	       (rule-application n)))))
-
+|#
 
 
 ;; durations-control-intervals
 
-(PWGLDef durations-control-intervals ((voices 0)
+(defun durations-control-intervals (&key
+				      (voices 0)
 				      (rel-factor 32)
 				      (acc-factor 2)
-				      &optional
-				      (rule-type  () :rule-type-mbox)
+				      (rule-type :true/false) ; options: :true/false :heur-switch
 				      (weight 1))
-	 "Pitch intervals and durations are lineary related.
+  "Pitch intervals and durations are lineary related.
 
 Args:
 voices (int or list of ints): The voice(s) to which the rule is applied. 
@@ -791,38 +810,35 @@ acc-factor (accuracy factor): factor how much the interval can deviate from that
 Examples: If rel-factor is 1 and acc-factor is also one, then the duration of a note would need to be the same as the interval starting at it (e.g., duration = 2 and interval is 2). If rel-factor is 32 and acc-factor is 2 (the defaults) the the interval can be any value between duration*32/2 and duration*32*2.  
 
 Optional arguments are inherited from r-rhythm-pitch-one-voice."
-	 () 
-	 (r-rhythm-pitch-one-voice #'(lambda (dur-pitch1 dur-pitch2)
-				       (if (and (second dur-pitch1) (second dur-pitch2)) ; no rests
-					   (let ((dur1 (first dur-pitch1))
-						 (interval (abs (- (second dur-pitch1) (second dur-pitch2)))))
-					     (<= (/ interval acc-factor)
-						 (* dur1 rel-factor)
-						 (* interval acc-factor)))
-					 T))
-					 ;; old version
-					 ;; (cond ((>= dur1 1/2) (<= interval 16))
-					 ;;       ((>= dur1 1/6) (<= interval 5))
-					 ;;       ((<= dur1 1/16) (<= interval 2)))
-				   voices :rhythm/pitch :exclude-gracenotes rule-type weight))
+  (r-rhythm-pitch-one-voice #'(lambda (dur-pitch1 dur-pitch2)
+				(if (and (second dur-pitch1) (second dur-pitch2)) ; no rests
+				    (let ((dur1 (first dur-pitch1))
+					  (interval (abs (- (second dur-pitch1) (second dur-pitch2)))))
+				      (<= (/ interval acc-factor)
+					  (* dur1 rel-factor)
+					  (* interval acc-factor)))
+				    T))
+			    ;; old version
+			    ;; (cond ((>= dur1 1/2) (<= interval 16))
+			    ;;       ((>= dur1 1/6) (<= interval 5))
+			    ;;       ((<= dur1 1/16) (<= interval 2)))
+			    voices :rhythm/pitch :exclude-gracenotes rule-type weight))
 
 
 ;; restrict-consecutive-directions
 
 ;; TODO: 
 ;; - allow n to be controlled by a BPF
-(PWGLDef restrict-consecutive-directions ((n 4)
-					  (direction () (ccl::mk-menu-subview :menu-list 
-							 '(":either" ":either-strict"
-							   ":ascending" ":ascending-strict"
-							   ":descending" ":descending-strict")))
+(defun restrict-consecutive-directions (&key
+					  (n 4)
+					  ;; direction options: :either, :either-strict, :ascending, :ascending-strict, :descending, :descending-strict
+					  (direction :either)
 					  ;; (condition () (ccl::mk-menu-subview :menu-list '(":at-most" ":exactly" ":at-least")))
 					  ;; "condition: Which restriction to apply? If :at-most, then at most n notes can be connected by intervals of the same given direction, and so forth."
 					  (voices 0)
-					  &optional
-					  (rule-type () (ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")))
+					  (rule-type :true/false) ; options: :true/false :heur-switch
 					  (weight 1))
-	 "This rule controls how many consecutive intervals can be ascending or descending. At most n notes can be connected by intervals of the same direction.
+  "This rule controls how many consecutive intervals can be ascending or descending. At most n notes can be connected by intervals of the same direction.
 
 Args:
   n (int): How many consecutive notes are taken into account?  
@@ -831,40 +847,39 @@ Args:
 In case of intermitting rests the rule is not applied.
 
 Other arguments are inherited from R-pitches-one-voice."
-	 () 
-	 (R-pitches-one-voice #'(lambda (all-pitches)
-				  (let ((pitches (last all-pitches (1+ n))))
-				    (if (and (= (length pitches) (1+ n))
-					     (every #'(lambda (p) (not (null p))) pitches)) ; no rests
-					(progn 
-					  ;; (format t "restrict-consecutive-directions: all-pitches: ~A, ~%   pitches: ~A~%" 
-					  ;; 	  all-pitches pitches)
-					  (not 
-					   (case direction
-					     (:ascending (apply #'<= pitches))
-					     (:ascending-strict (apply #'< pitches))
-					     (:descending (apply #'>= pitches))
-					     (:descending-strict (apply #'> pitches))
-					     (:either (or (apply #'<= pitches)
-							  (apply #'>= pitches)))
-					     (:either-strict (or (apply #'< pitches)
-								 (apply #'> pitches))))))
-				      T)))
-	  voices :all-pitches rule-type weight))
+  (R-pitches-one-voice #'(lambda (all-pitches)
+			   (let ((pitches (last all-pitches (1+ n))))
+			     (if (and (= (length pitches) (1+ n))
+				      (every #'(lambda (p) (not (null p))) pitches)) ; no rests
+				 (progn 
+				   ;; (format t "restrict-consecutive-directions: all-pitches: ~A, ~%   pitches: ~A~%" 
+				   ;; 	  all-pitches pitches)
+				   (not 
+				    (case direction
+				      (:ascending (apply #'<= pitches))
+				      (:ascending-strict (apply #'< pitches))
+				      (:descending (apply #'>= pitches))
+				      (:descending-strict (apply #'> pitches))
+				      (:either (or (apply #'<= pitches)
+						   (apply #'>= pitches)))
+				      (:either-strict (or (apply #'< pitches)
+							  (apply #'> pitches))))))
+				 T)))
+		       voices :all-pitches rule-type weight))
 
 
 ;; resolve-skips
 
 ;; To-do: 
 ;; - ?? allow n to be controlled by a BPF
-(PWGLDef resolve-skips ((skip-size 6)
+(defun resolve-skips (&key
+			(skip-size 6)
 			(resolution-size 2)
-			(repetition? () (ccl::mk-menu-subview :menu-list '(":disallow" ":allow")))
+			(repetition? :disallow) ; options: :disallow, :allow
 			(voices 0)
-			&optional
-			(rule-type () (ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")))
+			(rule-type :true/false) ; options: :true/false :heur-switch
 			(weight 1))
-	 "Resolve any skip larger than skip-size by an interval in the opposite direction.
+  "Resolve any skip larger than skip-size by an interval in the opposite direction.
 
 Args:
   skip-size: The minimum interval size (in semitones) that triggers this rule.
@@ -872,17 +887,16 @@ Args:
   repetition?: Whether or not tone repetitions are allowed as resolution.
 
 Other arguments are inherited from R-pitches-one-voice."
-	 () 
-	 (R-pitches-one-voice #'(lambda (pitch1 pitch2 pitch3)
-				  (if (and pitch1 pitch2 pitch3) ; no rests
-				      (let ((int1 (- pitch2 pitch1)) 
-					    (int2 (- pitch3 pitch2)))
-					(if (>= (abs int1) skip-size)
-					  (and (<= (abs int2) resolution-size)
-					       (/= (signum int1) (signum int2))
-					       (case repetition?
-						 (:disallow (> (abs int2) 0))
-						 (:allow T)))
-					  T))
-				    T))
-	  voices :pitches rule-type weight))
+  (R-pitches-one-voice #'(lambda (pitch1 pitch2 pitch3)
+			   (if (and pitch1 pitch2 pitch3) ; no rests
+			       (let ((int1 (- pitch2 pitch1)) 
+				     (int2 (- pitch3 pitch2)))
+				 (if (>= (abs int1) skip-size)
+				     (and (<= (abs int2) resolution-size)
+					  (/= (signum int1) (signum int2))
+					  (case repetition?
+					    (:disallow (> (abs int2) 0))
+					    (:allow T)))
+				     T))
+			       T))
+		       voices :pitches rule-type weight))

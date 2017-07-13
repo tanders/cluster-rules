@@ -22,7 +22,6 @@
 
 (in-package :cluster-rules) 
 
-
 ;;;
 ;;; General defs
 ;;;
@@ -155,8 +154,7 @@ NOTE: This rule can apply different BPFs to different voices with different sett
 		metric-structure
 		:offset
 		:norm
-		rule-type weight))
-
+		rule-type weight))  
 
 ;; no-syncopation
 

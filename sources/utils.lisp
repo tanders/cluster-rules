@@ -21,7 +21,7 @@
 
 (defun scale->pitchdomain (scale-pitches &key (min 60) (max 72))
   "Expects a list of pitches representing a scale (either pitch classes or absolute pitches), and a minimum and maximum pitch. Returns a pitch domain for clusterengine that contains all pitches between the min and max in the scale."
-  (let ((pcs (sort (pw::g-mod scale-pitches 12) #'<)))
+  (let ((pcs (sort (mapcar #'(lambda (p) (mod p 12)) scale-pitches) #'<)))
     (loop for pitch from min to max 
        when (member (mod pitch 12) pcs)
        collect (list pitch))))
