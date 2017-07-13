@@ -20,13 +20,17 @@
   :serial t ;; the dependencies are linear.
   :components ((:file "sources/package")
 	       (:file "sources/utils")
-	       (:file "sources/score")
+	       ;; depends on ENP
+	       ;; (:file "sources/score")
 	       (:file "sources/rhythm-rules")
+	       #|
 	       (:file "sources/melody-rules")
 	       (:file "sources/harmony-rules")
 	       (:file "sources/counterpoint-rules")
+	       |#
+	       ;; not exporting anything currently...
 	       (:file "sources/export")
-	       (:file "sources/menus")
+	       ;; (:file "sources/menus")
 	       )
   :depends-on ("cluster-engine" ; "ta-utilities"
 	       )

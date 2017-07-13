@@ -1,7 +1,7 @@
 ;;; -*- Mode:Lisp; Syntax:ANSI-Common-Lisp; -*-
 
 ;;; *************************************************************
-;;; Copyright (C) 2013 Torsten Anders (torsten.anders@beds.ac.uk) 
+;;; Copyright (C) 2017 Torsten Anders (torsten.anders@beds.ac.uk) 
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License
 ;;; as published by the Free Software Foundation; either version 3
@@ -12,6 +12,13 @@
 ;;; GNU General Public License for more details.
 ;;; *************************************************************
 
+;;;
+;;; TODO:
+;;; - Update rules avoiding PWGL dependencies
+;;;   - rhythm-profile-BPF-hr
+;;;   - phrase-length
+;;;
+
 
 (in-package :cluster-rules) 
 
@@ -20,10 +27,11 @@
 ;;; General defs
 ;;;
 
+#|
 (ccl::add-box-type :rule-type-mbox 
 		   ;; TODO: this is probably an unnecessary nesting of ccl::mk-menu-subview
 		   `(ccl::mk-menu-subview :menu-list ,(ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")) :value 1))
-
+|#
 
 ;; TODO: Better idea: I could define a var for every RGB value, e.g., for all rhythm values, to edit these colours later at a single place
 ;; ;; This was a test to abstract keyword params of PWGLDef, but it is not quite working -- the keyword param list is not evaluated, and hence I cannot use a variable for it.
@@ -57,17 +65,21 @@
 
 ;; rhythm-profile-BPF-hr
 
+#|
+;; TODO: rewrite avoiding BPFs and any PWGL functions etc.
 ;; TODO: rests can occur at any position of a note
 (PWGLDef rhythm-profile-BPF-hr 
-	 ((voices 0)
-	  (n 0)
-	  (BPFs NIL)
-	  (min-scaling 1/16)
-	  (max-scaling 1)
-	  &key
-	  (rnd-deviation 0)
-	  (permutate #'identity))
-	 "Heuristic constraint: rhythmic values essentially follow a BPF. However, the BPF is slightly processed. Firstly, the BPF values are scaled into the interval [min-scaling, max-scaling]. Secondly, the BPF can be somewhat randomised (amount chosen with rnd-deviation, see below). Also, the BPF becomes somewhat 'curved' (using power 3) to address the distribution of rhythmic values (e.g., 1/16, 1/8, 1/4..) [the latter is a HACK].  
+    ((voices 0)
+     (n 0)
+     (BPFs NIL)
+     (min-scaling 1/16)
+     (max-scaling 1)
+     &key
+       (rnd-deviation 0)
+       (permutate #'identity))
+  "TODO: doc needs updating after porting to plain CL.
+
+Heuristic constraint: rhythmic values essentially follow a BPF. However, the BPF is slightly processed. Firstly, the BPF values are scaled into the interval [min-scaling, max-scaling]. Secondly, the BPF can be somewhat randomised (amount chosen with rnd-deviation, see below). Also, the BPF becomes somewhat 'curved' (using power 3) to address the distribution of rhythmic values (e.g., 1/16, 1/8, 1/4..) [the latter is a HACK].  
 
 Note that the rule follow-profile-hr is more flexible than the rule rhythm-profile-BPF-hr, but this rule is more easy to use for its purposes. Also, this rule allows for rests to occur at any position of a note (with the same duration).
 
@@ -84,41 +96,41 @@ Keyword args:
 
 NOTE: This rule can apply different BPFs to different voices with different settings. If a list of BPFs is given, then a different BPF is given to each of the voices listed. In that case, all other arguments (except n) can be either single values that are shared by all voices, or a list of different values for the different voices.
 "
-	 (:groupings '(3 2))
-	 (let ((l (length (if (listp BPFs) BPFs (list BPFs)))))
-	   (mappend #'(lambda (BPF voice min-scaling max-scaling rnd-deviation permutate)
-			;; (format T "rhythm-profile-BPF-hr 1: args: ~A ~%" 
-			;; 	(list BPF voice min-scaling max-scaling rnd-deviation permutate))
-			(let* ((BPF-xs (pw::g-scaling (pw::g-power (pw::g-scaling (ccl::pwgl-sample BPF n) 
-										  0 1) 
-								   3)
-						      min-scaling max-scaling))
-			       (abs-rnd-deviation (abs rnd-deviation))
-			       (rnds (loop for i from 1 to n
-					   collect (pw::g-random (* abs-rnd-deviation -1) abs-rnd-deviation)))
-			       (BPF-rnd-xs (funcall permutate (pw::g+ BPF-xs (pw::g* BPF-xs rnds)))))
-			  (hr-rhythms-one-voice #'(lambda (xs) 
-						    "Returns a heuristic -- better BPF matches are preferred. Essentially, returns the abs difference between current dur and corresponding env value."
-						    ;; (format T "rhythm-profile-BPF-hr: xs: ~A, BPF-rnd-xs: ~A ~%" 
-						    ;; 	    xs BPF-rnd-xs)
-						    (- 1000 (* (abs 
-								;; abs: both rests and note can occur
-								(- (abs (first (last xs))) 
-								   (abs (nth (1- (length xs)) 
-									     BPF-rnd-xs)))) 
-							       100)))		       
-						voice
-						:all-durations)))
-		    (if (listp BPFs) BPFs (list BPFs))
-		    ;; if only a single voice but multiple BPFs are given, 
-		    ;; then only the given voice is constrained with the 1st BPF
-		    (if (listp voices) voices (list voices)) 
-		    (if (listp min-scaling) min-scaling (make-list l :initial-element min-scaling))
-		    (if (listp max-scaling) max-scaling (make-list l :initial-element max-scaling))
-		    (if (listp rnd-deviation) rnd-deviation (make-list l :initial-element rnd-deviation))
-		    (if (listp permutate) permutate (make-list l :initial-element permutate)))
-		 ))
-
+  (:groupings '(3 2))
+  (let ((l (length (if (listp BPFs) BPFs (list BPFs)))))
+    (mappend #'(lambda (BPF voice min-scaling max-scaling rnd-deviation permutate)
+		 ;; (format T "rhythm-profile-BPF-hr 1: args: ~A ~%" 
+		 ;; 	(list BPF voice min-scaling max-scaling rnd-deviation permutate))
+		 (let* ((BPF-xs (pw::g-scaling (pw::g-power (pw::g-scaling (ccl::pwgl-sample BPF n) 
+									   0 1) 
+							    3)
+					       min-scaling max-scaling))
+			(abs-rnd-deviation (abs rnd-deviation))
+			(rnds (loop for i from 1 to n
+				 collect (pw::g-random (* abs-rnd-deviation -1) abs-rnd-deviation)))
+			(BPF-rnd-xs (funcall permutate (pw::g+ BPF-xs (pw::g* BPF-xs rnds)))))
+		   (hr-rhythms-one-voice #'(lambda (xs) 
+					     "Returns a heuristic -- better BPF matches are preferred. Essentially, returns the abs difference between current dur and ; commentrresponding env value."
+					     ;; (format T "rhythm-profile-BPF-hr: xs: ~A, BPF-rnd-xs: ~A ~%" 
+					     ;; 	    xs BPF-rnd-xs)
+					     (- 1000 (* (abs 
+							 ;; abs: both rests and note can occur
+							 (- (abs (first (last xs))) 
+							    (abs (nth (1- (length xs)) 
+								      BPF-rnd-xs)))) 
+							100)))		       
+					 voice
+					 :all-durations)))
+	     (if (listp BPFs) BPFs (list BPFs))
+	     ;; if only a single voice but multiple BPFs are given, 
+	     ;; then only the given voice is constrained with the 1st BPF
+	     (if (listp voices) voices (list voices)) 
+	     (if (listp min-scaling) min-scaling (make-list l :initial-element min-scaling))
+	     (if (listp max-scaling) max-scaling (make-list l :initial-element max-scaling))
+	     (if (listp rnd-deviation) rnd-deviation (make-list l :initial-element rnd-deviation))
+	     (if (listp permutate) permutate (make-list l :initial-element permutate)))
+    ))
+|#
 
 
 ;; no-two-consecutive-syncopations
@@ -131,20 +143,19 @@ NOTE: This rule can apply different BPFs to different voices with different sett
 ;; BUG: 
 ;; - not working? 
 ;; - prevents rests?
-(PWGLDef no-two-consecutive-syncopations 
-	 ((voices 0)
-	  (metric-structure () (ccl::mk-menu-subview :menu-list '(":beats" ":1st-beat")))
-	  &optional
-	  (rule-type  () :rule-type-mbox)
-	  (weight 1))
-	 "For any two consecutive beats/bars, at least one notes must start on a beat. All arguments are inherited from r-meter-note."
-	 () 
-	 (r-meter-note #'no-two-consecutive-syncopations-rule
-		       voices
-		       metric-structure
-		       :offset
-		       :norm
-		       rule-type weight))
+(defun no-two-consecutive-syncopations 
+    (&key
+       (voices 0)
+       (metric-structure :1st-beat) ; options: :beats, :1st-beat     
+       (rule-type :true/false) ; options: :true/false :heur-switch
+       (weight 1))
+  "For any two consecutive beats/bars, at least one notes must start on a beat. All arguments are inherited from r-meter-note."
+  (r-meter-note #'no-two-consecutive-syncopations-rule
+		voices
+		metric-structure
+		:offset
+		:norm
+		rule-type weight))
 
 
 ;; no-syncopation
@@ -153,33 +164,31 @@ NOTE: This rule can apply different BPFs to different voices with different sett
   "On the given beat a note must start. Constraint intended for r-meter-note applied to either 1st beats of bars or beats with input model offs."
   (= offs 0))
 
-(PWGLDef no-syncopation 
-	 ((voices 0)
-	  (metric-structure () (ccl::mk-menu-subview :menu-list '(":beats" ":1st-beat")))
-	  &optional
-	  (rule-type  () :rule-type-mbox)
-	  (weight 1))
-	 "For any two consecutive beats/bars, at least one notes must start on a beat. All arguments are inherited from r-meter-note."
-	 ()
-	 (r-meter-note #'no-syncopation-rule
-		       voices
-		       metric-structure
-		       :offset
-		       :norm
-		       rule-type weight))
+(defun no-syncopation 
+    (&key
+       (voices 0)
+       (metric-structure :1st-beat) ; options: :beats, :1st-beat 
+       (rule-type  :true/false) ; options: :true/false :heur-switch
+       (weight 1))
+  "For any two consecutive beats/bars, at least one notes must start on a beat. All arguments are inherited from r-meter-note."
+  (r-meter-note #'no-syncopation-rule
+		voices
+		metric-structure
+		:offset
+		:norm
+		rule-type weight))
 
 
 
 ;; no syncopation (in relation to metric-structure) unless the syncopation is accented (i.e., meets an accent-rule, regardless of the accent positions)
-(PWGLDef no-syncopation-unless-accented
-	 ((voices 1)
-	  (metric-structure () (ccl::mk-menu-subview :menu-list '(":beats" ":1st-beat")))
- 	  (accent-rule () (ccl::mk-menu-subview :menu-list '(":longer-than-predecessor"
-							     ":longer-than-predecessor-strict"
-							     ":longer-than-neighbours")))
-	  &optional
-	  (rule-type  () :rule-type-mbox)
-	  (weight 1))
+(defun no-syncopation-unless-accented
+	 (&key
+	    (voices 0)
+	    (metric-structure :1st-beat) ; options: :beats, :1st-beat
+	    ; accent-rule options: :longer-than-predecessor, :longer-than-predecessor-strict, :longer-than-neighbours
+	    (accent-rule :longer-than-predecessor)
+	    (rule-type  :true/false) ; options: :true/false :heur-switch
+	    (weight 1))
 	 "Restricts syncopations (of level metric-structure) to notes accented according to accent-rule.
 
 Args:
@@ -198,7 +207,6 @@ Anyway, I may be close with this one...
 
 TODO: Include in rhythm menu, once finished
 " 
-	 ()
 	 (r-meter-note
 	  (let* ((rule (case accent-rule
 			 (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
@@ -382,21 +390,20 @@ Intended for r-note-meter with format d_offs on beats."
       |#
       t)))
 
-(PWGLDef only-simple-syncopations 
-	 ((voices 0)
-	  (gracenote-mode  () (ccl::mk-menu-subview :menu-list '(":normal" ":excl-gracenotes")))
-	  &optional
-	  (rule-type  () :rule-type-mbox)
-	  (weight 1))
-	 "Restricts syncopations over beats to certain relatively simple cases. For example, the only possible syncopation allowed for a note value 1/4 is 1/8 before a beat. All arguments are inherited from r-note-meter."  
-	 ()
-	 (r-note-meter #'only-simple-syncopations-rule
-		       voices
-		       :d_offs
-		       :beats
-		       :durations
-		       gracenote-mode
-		       rule-type weight))
+(defun only-simple-syncopations 
+    (&key
+       (voices 0)
+       (gracenote-mode :normal) ; options: :normal, :excl-gracenotes 
+       (rule-type  :true/false) ; options: :true/false :heur-switch
+       (weight 1))
+  "Restricts syncopations over beats to certain relatively simple cases. For example, the only possible syncopation allowed for a note value 1/4 is 1/8 before a beat. All arguments are inherited from r-note-meter."  
+  (r-note-meter #'only-simple-syncopations-rule
+		voices
+		:d_offs
+		:beats
+		:durations
+		gracenote-mode
+		rule-type weight))
 
 
 ;; only-simple-tuplet-offs-rule
@@ -433,21 +440,20 @@ Intended for r-note-meter with format d_offs on beats."
 	) |# 
 	))))
 
-(PWGLDef only-simple-tuplet-offs 
-	 ((voices 0)
-	  (gracenote-mode  () (ccl::mk-menu-subview :menu-list '(":normal" ":excl-gracenotes")))
-	  &optional
-	  (rule-type  () :rule-type-mbox)
-	  (weight 1))
-	 "Restricts the rhythmic position of notes to relatively simple cases. For example, triplet notes can only be part of a triplet. All arguments are inherited from r-note-meter."  
-	 ()
-	 (r-note-meter #'only-simple-tuplet-offs-rule
-		       voices
-		       :d_offs
-		       :beats
-		       :durations
-		       gracenote-mode
-		       rule-type weight))
+(defun only-simple-tuplet-offs 
+    (&key
+       (voices 0)
+       (gracenote-mode :normal) ; options: :normal, :excl-gracenotes 
+       (rule-type :true/false) ; options: :true/false :heur-switch
+       (weight 1))
+  "Restricts the rhythmic position of notes to relatively simple cases. For example, triplet notes can only be part of a triplet. All arguments are inherited from r-note-meter."  
+  (r-note-meter #'only-simple-tuplet-offs-rule
+		voices
+		:d_offs
+		:beats
+		:durations
+		gracenote-mode
+		rule-type weight))
 
 
 ;; ;; TODO: 
@@ -473,42 +479,41 @@ Intended for r-note-meter with format d_offs on beats."
 
 ;; start-with-rest
 
-(PWGLDef start-with-rest ((rest-dur 0)
+(defun start-with-rest (&key
+			  (rest-dur 0)
 			  (voices 0)
-			  &optional
-			  (rule-type  () :rule-type-mbox)
+			  (rule-type :true/false) ; options: :true/false :heur-switch
 			  (weight 1))
-	 "Start the given voice(s) with a rest of the given duration (either an int or a list of ints indicating a domain) If rest-dur is NIL then this means a rest of any duration is acceptable.
+  "Start the given voice(s) with a rest of the given duration (either an int or a list of ints indicating a domain) If rest-dur is NIL then this means a rest of any duration is acceptable.
 
 Hint: make sure you included rests in your rhythm domain (as negative integers). 
 
 Other optional arguments are inherited from r-index-rhythms-one-voice."
-	 () 
-	 (r-index-rhythms-one-voice #'(lambda (rhythm)
-					(and (< rhythm 0)
-					     (or (not rest-dur) ; rest-dur is NIL
-						 (member (abs rhythm) 
-							 (mapcar #'abs
-								 (if (listp rest-dur) rest-dur (list rest-dur)))))))
-				    '(0)
-				    voices
-				    :position-for-duration
-				    rule-type weight))
+  (r-index-rhythms-one-voice #'(lambda (rhythm)
+				 (and (< rhythm 0)
+				      (or (not rest-dur) ; rest-dur is NIL
+					  (member (abs rhythm) 
+						  (mapcar #'abs
+							  (if (listp rest-dur) rest-dur (list rest-dur)))))))
+			     '(0)
+			     voices
+			     :position-for-duration
+			     rule-type weight))
 
 
 
 
 ;; metric-offset-of-motif
 
-(PWGLDef metric-offset-of-motif ((metric-offset 0)
+(defun metric-offset-of-motif (&key
+				 (metric-offset 0)
 				 (voices 0)
-				 (metric-structure () (ccl::mk-menu-subview :menu-list '(":beats" ":1st-beat")))
+				 (metric-structure :1st-beat) ; options: :beats, :1st-beat     
 				 (grid 1/4)
-				 &optional
 				 (min-motif-length NIL)
-				 (rule-type  () :rule-type-mbox)
+				 (rule-type  :true/false) ; options: :true/false :heur-switch
 				 (weight 1))
-	 "Motifs must start metric-offset away from set beat. Motifs starting with rests are not constrained.
+  "Motifs must start metric-offset away from set beat. Motifs starting with rests are not constrained.
 
 Args:
   metric-offset (ratio): How far should motifs be shifted with respect to the metric-structure? For example, if metric-offset is -1/8, then motifs will be shifted to start an eighths note before the beat (or bar). 
@@ -519,42 +524,42 @@ Optional arg:
 
 Other arguments are inherited from R-meter-note.
 "
-	 () 
-	 (r-meter-note #'(lambda (offs_motif)
-			   (let ((offs (first offs_motif))
-				 (motif (second offs_motif)))
-			     (if (and (>= (first motif) 0) ; motif starting with note?
-				      (or (not min-motif-length) ; min-motif-length not set
-					  (>= (length motif) min-motif-length)))
-				 (or ;; is motif on set position?
-				  (= (- offs metric-offset) 0)
-				  ;; if checked per beat, motif is potentially longer than a single beat
-				  (<= offs (* -1 grid)))
-			       T)))
-		       voices
-		       metric-structure
-		       :offset_motif
-		       :norm
-		       rule-type weight))
+  (r-meter-note #'(lambda (offs_motif)
+		    (let ((offs (first offs_motif))
+			  (motif (second offs_motif)))
+		      (if (and (>= (first motif) 0) ; motif starting with note?
+			       (or (not min-motif-length) ; min-motif-length not set
+				   (>= (length motif) min-motif-length)))
+			  (or ;; is motif on set position?
+			   (= (- offs metric-offset) 0)
+			   ;; if checked per beat, motif is potentially longer than a single beat
+			   (<= offs (* -1 grid)))
+			  T)))
+		voices
+		metric-structure
+		:offset_motif
+		:norm
+		rule-type weight))
 
 
 ;; minimum-phrase-dur
 
+#|
 ;; TODO: 
 ;; - !! Efficiency: change internal BPF representation from list into array/vector for faster access during search -- see PWConstraints example.. 
 ;; - OK Make min-phrase-length controllable by a BPF
 ;; - OK Consider introducing min/max/exactly switch for the phrase-length
 ;; - OK Allow for several rests to occur consecutively
 ;; - NO Consider interface change: have optional settings for min and max
-(PWGLDef phrase-length ((phrase-length 0)
-			;; (skipped-durs-no 0)
-			(relation  () (ccl::mk-menu-subview :menu-list '(":min" ":max")))
+(defun phrase-length (&key
 			(voices 0)
-			&optional
+			(phrase-length 0)
+			;; (skipped-durs-no 0)
+			(relation :min) ; options: :min, :max
 			(n 1)
-			(rule-type  () :rule-type-mbox)
+			(rule-type  :true/false) ; options: :true/false :heur-switch
 			(weight 1))
-	 "This rule controls the number of notes and grace notes between rests (the length of phrases). 
+  "This rule controls the number of notes and grace notes between rests (the length of phrases). 
 
 Args:
   phrase-length (int): The set number of notes between rests. Consecutive rests (effectively longer rests) can occur freely.
@@ -564,67 +569,67 @@ BUG: Strangely, at least one motif of the rhythm domain must have at least lengt
 
 Other arguments are inherited from R-rhythms-one-voice
 "
-	 () 
-	 (let ((BPF-vals (if (ccl::break-point-function-p phrase-length)
-			     (ccl::pwgl-sample phrase-length n)
-			   phrase-length)))
-	   (R-rhythms-one-voice 
-	    #'(lambda (durs)
-		(let ((curr-phrase-length (if (ccl::break-point-function-p phrase-length)
-					      (nth (length durs) BPF-vals)
-					    phrase-length))
-		      (rev-durs (reverse durs)))
-		  (if (second rev-durs) ; there are at least two items
-		      (case relation
-			(:min (if (and (is-rest? (first rev-durs)) 
-				       (not (is-rest? (second rev-durs)))) ; rests can follow each other
-				  (let ((prev-rest-pos (position-if #'is-rest? (rest rev-durs))))
-				    (if prev-rest-pos ; there has been a rest before
-					(<= curr-phrase-length prev-rest-pos) ; tested on rest
-				      (<= curr-phrase-length (length rev-durs))))
-				T))
-			(:max (if (and (not (is-rest? (first rev-durs))))
-				  (let ((prev-rest-pos (position-if #'is-rest? (rest rev-durs))))
-				    (if prev-rest-pos ; there has been a rest before
-					(>= (1- curr-phrase-length) prev-rest-pos) ; tested on note
-				      (>= curr-phrase-length (length rev-durs))))
-				T))
-			))))	
-	    ;; (let ((rev-durs (reverse durs)))
-	    ;; 	(if (and (second rev-durs) ; there are at least two items
-	    ;; 		 ;; (case relation
-	    ;; 		 ;;   (:min (and 
-	    ;; 		 ;; 	  (< (first rev-durs) 0) ; current item is a rest
-	    ;; 		 ;; 	  (> (second rev-durs) 0))) ; previous dur is not rest
-	    ;; 		 ;;   (:max (> (first rev-durs) 0))) ; current item is a note
-	    ;; 		 (< (first rev-durs) 0) ; current item is a rest
-	    ;; 		 (> (second rev-durs) 0) ; previous dur is not rest
-	    ;; 		 ) 
-	    ;; 	    (let ((prev-rest-pos (position-if #'(lambda (x) (< x 0))
-	    ;; 					      (rest rev-durs))))
-	    ;; 	      ;; TODO: revise case where that have not been rests befoer
-	    ;; 	      (if prev-rest-pos ; there has been a rest before
-	    ;; 		  (funcall (case relation
-	    ;; 			     (:min #'>=)
-	    ;; 			     (:max #'<=)
-	    ;; 			     ;; (:equal #'=)
-	    ;; 			     )						       
-	    ;; 			   prev-rest-pos phrase-length)
-	    ;; 		T))
-	    ;; 	  T))
-	    voices
-	    :all-durations
-	    rule-type weight)))
+  (let ((BPF-vals (if (ccl::break-point-function-p phrase-length)
+		      (ccl::pwgl-sample phrase-length n)
+		      phrase-length)))
+    (R-rhythms-one-voice 
+     #'(lambda (durs)
+	 (let ((curr-phrase-length (if (ccl::break-point-function-p phrase-length)
+				       (nth (length durs) BPF-vals)
+				       phrase-length))
+	       (rev-durs (reverse durs)))
+	   (if (second rev-durs) ; there are at least two items
+	       (case relation
+		 (:min (if (and (is-rest? (first rev-durs)) 
+				(not (is-rest? (second rev-durs)))) ; rests can follow each other
+			   (let ((prev-rest-pos (position-if #'is-rest? (rest rev-durs))))
+			     (if prev-rest-pos ; there has been a rest before
+				 (<= curr-phrase-length prev-rest-pos) ; tested on rest
+				 (<= curr-phrase-length (length rev-durs))))
+			   T))
+		 (:max (if (and (not (is-rest? (first rev-durs))))
+			   (let ((prev-rest-pos (position-if #'is-rest? (rest rev-durs))))
+			     (if prev-rest-pos ; there has been a rest before
+				 (>= (1- curr-phrase-length) prev-rest-pos) ; tested on note
+				 (>= curr-phrase-length (length rev-durs))))
+			   T))
+		 ))))	
+     ;; (let ((rev-durs (reverse durs)))
+     ;; 	(if (and (second rev-durs) ; there are at least two items
+     ;; 		 ;; (case relation
+     ;; 		 ;;   (:min (and 
+     ;; 		 ;; 	  (< (first rev-durs) 0) ; current item is a rest
+     ;; 		 ;; 	  (> (second rev-durs) 0))) ; previous dur is not rest
+     ;; 		 ;;   (:max (> (first rev-durs) 0))) ; current item is a note
+     ;; 		 (< (first rev-durs) 0) ; current item is a rest
+     ;; 		 (> (second rev-durs) 0) ; previous dur is not rest
+     ;; 		 ) 
+     ;; 	    (let ((prev-rest-pos (position-if #'(lambda (x) (< x 0))
+     ;; 					      (rest rev-durs))))
+     ;; 	      ;; TODO: revise case where that have not been rests befoer
+     ;; 	      (if prev-rest-pos ; there has been a rest before
+     ;; 		  (funcall (case relation
+     ;; 			     (:min #'>=)
+     ;; 			     (:max #'<=)
+     ;; 			     ;; (:equal #'=)
+     ;; 			     )						       
+     ;; 			   prev-rest-pos phrase-length)
+     ;; 		T))
+     ;; 	  T))
+     voices
+     :all-durations
+     rule-type weight)))
+|#
 
 
 ;; TODO: if future versions of R-rhythm-rhythm allow, then allow max-factor to be a BPF that can change over time (e.g., that way, some parts of the music can be forced to be strictly homophonic, while others are not) 
-(PWGLDef similar-sim-durations ((voices '(0 1))
+(defun similar-sim-durations (&key
+				(voices '(0 1))
 				(max-factor 1)
-				(rest-mode () (ccl::mk-menu-subview :menu-list '(":constrain" ":ignore")))
-				&optional
-				(rule-type  () (ccl::mk-menu-subview :menu-list '(":true/false" ":heur-switch")))
+				(rest-mode :constrain) ; options: :constrain, :ignore
+				(rule-type :true/false) ; options: :true/false :heur-switch
 				(weight 1))
-	 "This rule restricts the maximum difference between simultaneous note durations. Together with the rule r-rhythm-hierarchy (from library cluster engine) this rule allows to enforce a homophonic texture and also almost homophonic textures. 
+  "This rule restricts the maximum difference between simultaneous note durations. Together with the rule r-rhythm-hierarchy (from library cluster engine) this rule allows to enforce a homophonic texture and also almost homophonic textures. 
 
 Note that grace notes are ignored by this rule.
 
@@ -637,34 +642,33 @@ Other args are inherited from R-rhythm-rhythm.
 
 BUG: Arg factor seemingly not fully working as documented yet if factor > 1.
 "
-	 ()
-	 (let ((voice1 (first voices)))
-	   (mapcar #'(lambda (voice2)
-		       ;; (format T "similar-sim-durations 1: voice1: ~A, voice2: ~A~%" voice1 voice2)
-		       (R-rhythm-rhythm #'(lambda (d1_offset_d2)
-					    (destructuring-bind (dur1 offset dur2) d1_offset_d2
-					      (let ((both-notes-or-rests?  
-						     (case rest-mode
-						       (:ignore T)
-						       (:constrain (= (signum dur1) (signum dur2)))))) 
-						(if both-notes-or-rests?
-						    ;; (cond ((= dur1 dur2) T)
-						    ;; 	  ((< dur1 dur2) (<= dur2 (* dur1 max-factor)))
-						    ;; 	  ((< dur2 dur1) (<= dur1 (* dur2 max-factor))))
-						    (or (= dur1 dur2)
-						    	(and (< dur1 dur2) (<= dur2 (* dur1 max-factor)))
-						    	(and (< dur2 dur1) (<= dur1 (* dur2 max-factor))))
-						  T))))
-					voice1
-					voice2
-					:d1_offs_d2
-					:norm
-					(case rest-mode
-					  (:ignore :at-durations-v1)
-					  (:constrain :at-events-v1))
-					rule-type
-					weight))
-		   (rest voices))))
+  (let ((voice1 (first voices)))
+    (mapcar #'(lambda (voice2)
+		;; (format T "similar-sim-durations 1: voice1: ~A, voice2: ~A~%" voice1 voice2)
+		(R-rhythm-rhythm #'(lambda (d1_offset_d2)
+				     (destructuring-bind (dur1 offset dur2) d1_offset_d2
+				       (let ((both-notes-or-rests?  
+					      (case rest-mode
+						(:ignore T)
+						(:constrain (= (signum dur1) (signum dur2)))))) 
+					 (if both-notes-or-rests?
+					     ;; (cond ((= dur1 dur2) T)
+					     ;; 	  ((< dur1 dur2) (<= dur2 (* dur1 max-factor)))
+					     ;; 	  ((< dur2 dur1) (<= dur1 (* dur2 max-factor))))
+					     (or (= dur1 dur2)
+						 (and (< dur1 dur2) (<= dur2 (* dur1 max-factor)))
+						 (and (< dur2 dur1) (<= dur1 (* dur2 max-factor))))
+					     T))))
+				 voice1
+				 voice2
+				 :d1_offs_d2
+				 :norm
+				 (case rest-mode
+				   (:ignore :at-durations-v1)
+				   (:constrain :at-events-v1))
+				 rule-type
+				 weight))
+	    (rest voices))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -702,20 +706,18 @@ Arg strictness is a keyword switching bewtween three cases.
 ;; OK - Try combining accent constraints, where either accent constraint can be met -- Quasi solution: define extra rules containing OR 
 ;; OK - Decide: should different accent rules have access to different information (different format settings: :offs, :d_offs, :d_offs_m, :d_offs_m_n)? Perhaps you better defined different boxes for such cases? For now assume the same setting for all
 ;;      Do *not* do that for consistency with accents-in-other-voice (and simplicity)
-(PWGLDef metric-accents
-	 ((voices 0)
-	  (metric-structure () (ccl::mk-menu-subview :menu-list '(":1st-beat" ":beats")))
-	  (accent-rule () (ccl::mk-menu-subview :menu-list '(":longer-than-predecessor"
-							     ":longer-than-predecessor-strict"
-							     ":longer-than-neighbours")))
-	  (strictness () (ccl::mk-menu-subview :menu-list '(":note"
-							    ":position"
-							    ":note-n-position")))
-	  (gracenote-mode  () (ccl::mk-menu-subview :menu-list '(":normal" ":excl-gracenotes")))
-	  &optional
-	  (rule-type  () :rule-type-mbox)
-	  (weight 1))
-	 "Restricts where metric accents occur depending on the underlying meter. If an accent occurs, then it is on the position defined. 
+(defun metric-accents
+    (&key
+       (voices 0)
+       (metric-structure :1st-beat) ; options: :beats, :1st-beat
+       ;; accent-rule options: :longer-than-predecessor, :longer-than-predecessor-strict, :longer-than-neighbours
+       (accent-rule :longer-than-predecessor)
+       ;; strictness options: :note, :position, :note-n-position
+       (strictness :note)
+       (gracenote-mode :normal) ; options: :normal, :excl-gracenotes 
+       (rule-type :true/false) ; options: :true/false :heur-switch
+       (weight 1))
+  "Restricts where metric accents occur depending on the underlying meter. If an accent occurs, then it is on the position defined. 
 
 Args:
   metric-structure: Position where accents are controlled (on any beat or the first beat of a measure).
@@ -736,50 +738,47 @@ Some accent rules are predefined and can be simply selected in the menu of the a
  
 Other arguments are inherited from r-note-meter.
 
-" 
-	 ()
-	 ;; r-note-meter constraints all events of the given voice(s)
-	 (r-note-meter (let* ((rule (case accent-rule
-				      (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
-				      (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
-				      (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
-				      (otherwise accent-rule)))
-			      (length-rule-args (length (ccl::function-lambda-list rule))))
-			 ;; create a function with same number of args as given rule
-			 (cond ((= length-rule-args 1)
-				#'(lambda (d_offs) 
-				    (accent-strictness 
-				     strictness (funcall rule d_offs) (= (second d_offs) 0))))
-			       ((= length-rule-args 2)
-				#'(lambda (d_offs1 d_offs2) 
-				    (accent-strictness 
-				     strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
-			       ((= length-rule-args 3)
-				#'(lambda (d_offs1 d_offs2 d_offs3) 
-				    (accent-strictness 
-				     strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
-			       (T (error "Rule ~A with unsupported number of arguments" rule))))
-		       voices
-		       :d_offs
-		       metric-structure
-		       :incl-rests
-		       gracenote-mode
-		       rule-type weight))
+"
+  ;; r-note-meter constraints all events of the given voice(s)
+  (r-note-meter (let* ((rule (case accent-rule
+			       (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
+			       (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
+			       (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
+			       (otherwise accent-rule)))
+		       (length-rule-args (length (ccl::function-lambda-list rule))))
+		  ;; create a function with same number of args as given rule
+		  (cond ((= length-rule-args 1)
+			 #'(lambda (d_offs) 
+			     (accent-strictness 
+			      strictness (funcall rule d_offs) (= (second d_offs) 0))))
+			((= length-rule-args 2)
+			 #'(lambda (d_offs1 d_offs2) 
+			     (accent-strictness 
+			      strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
+			((= length-rule-args 3)
+			 #'(lambda (d_offs1 d_offs2 d_offs3) 
+			     (accent-strictness 
+			      strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
+			(T (error "Rule ~A with unsupported number of arguments" rule))))
+		voices
+		:d_offs
+		metric-structure
+		:incl-rests
+		gracenote-mode
+		rule-type weight))
 
 
-(PWGLDef accents-in-other-voice
-	 ((voices 1)
-	  (accents-voice 0)
-	  (accent-rule () (ccl::mk-menu-subview :menu-list '(":longer-than-predecessor"
-							     ":longer-than-predecessor-strict"
-							     ":longer-than-neighbours")))
-	  (strictness () (ccl::mk-menu-subview :menu-list '(":note"
-							    ":position"
-							    ":note-n-position")))
-	  &optional
-	  (rule-type  () :rule-type-mbox)
-	  (weight 1))
-	 "Restricts where metric accents occur depending on the note onsets defined in an 'accents voice'. If an accent occurs, then it is on the position defined. 
+(defun accents-in-other-voice
+    (&key
+       (voices 1)
+       (accents-voice 0)
+       ;; accent-rule options: :longer-than-predecessor, :longer-than-predecessor-strict, :longer-than-neighbours
+       (accent-rule :longer-than-predecessor)
+       ;; strictness options: :note, :position, :note-n-position
+       (strictness :note)
+       (rule-type :true/false) ; options: :true/false :heur-switch
+       (weight 1))
+  "Restricts where metric accents occur depending on the note onsets defined in an 'accents voice'. If an accent occurs, then it is on the position defined. 
 
 Args:
   voices (int or list of ints): The numbers of voice(s) to constrain.
@@ -797,37 +796,36 @@ Optional args:
   accents-voice: the number of the voice that defines accents. Each note onset in accents-voice is taken as an accent for the given voices.
 
 Other arguments are inherited from r-rhythm-rhythm.
-" 
-	 ()
-	 (mapcar #'(lambda (voice)
-		     ;; r-note-meter constraints all events of voice
-		     (r-rhythm-rhythm (let* ((rule (case accent-rule
-						     (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
-						     (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
-						     (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
-						     (otherwise accent-rule)))
-					     (length-rule-args (length (ccl::function-lambda-list rule))))
-					;; create a function with same number of args as given rule
-					(cond ((= length-rule-args 1)
-					       #'(lambda (d_offs) 
-						   (accent-strictness 
-						    strictness (funcall rule d_offs) (= (second d_offs) 0))))
-					      ((= length-rule-args 2)
-					       #'(lambda (d_offs1 d_offs2) 
-						   (accent-strictness 
-						    strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
-					      ((= length-rule-args 3)
-					       #'(lambda (d_offs1 d_offs2 d_offs3) 
-						   (accent-strictness 
-						    strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
-					      (T (error "Rule ~A with unsupported number of arguments" rule))))
-				      voice
-				      accents-voice
-				      :d1_offs
-				      :norm
-				      :at-durations-v1				    
-				      ))
-		 (if (listp voices) voices (list voices))))
+"
+  (mapcar #'(lambda (voice)
+	      ;; r-note-meter constraints all events of voice
+	      (r-rhythm-rhythm (let* ((rule (case accent-rule
+					      (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
+					      (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
+					      (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
+					      (otherwise accent-rule)))
+				      (length-rule-args (length (ccl::function-lambda-list rule))))
+				 ;; create a function with same number of args as given rule
+				 (cond ((= length-rule-args 1)
+					#'(lambda (d_offs) 
+					    (accent-strictness 
+					     strictness (funcall rule d_offs) (= (second d_offs) 0))))
+				       ((= length-rule-args 2)
+					#'(lambda (d_offs1 d_offs2) 
+					    (accent-strictness 
+					     strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
+				       ((= length-rule-args 3)
+					#'(lambda (d_offs1 d_offs2 d_offs3) 
+					    (accent-strictness 
+					     strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
+				       (T (error "Rule ~A with unsupported number of arguments" rule))))
+			       voice
+			       accents-voice
+			       :d1_offs
+			       :norm
+			       :at-durations-v1				    
+			       ))
+	  (if (listp voices) voices (list voices))))
 
 ;; (defun d1_offs_d2->d_offs (d1_offs_d2)
 ;;   "[aux def] Swaps list values for accents-in-other-voice-position."
@@ -911,26 +909,23 @@ Other arguments are inherited from r-rhythm-rhythm.
       (and (> dur2 dur1) (> dur2 dur3)))))
 
 
-(PWGLDef mk-accent-has-at-least-duration-ar ((min-duration 1/4))
+(defun mk-accent-has-at-least-duration-ar (&key (min-duration 1/4))
   "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are at least min-duration long."
-  ()
   #'(lambda (d_offs)
       (destructuring-bind (dur offs) d_offs
 	(when (plusp dur) ; no rest
 	  (>= dur min-duration)))))
 
-(PWGLDef mk-accent->-prep-OR->=-dur-ar ((min-duration 1/4))
+(defun mk-accent->-prep-OR->=-dur-ar (&key (min-duration 1/4))
   "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are EITHER longer than the preceeding note and at least as long as the succeeding note, OR at least min-duration long."
-  ()
   #'(lambda (d_offs1 d_offs2 d_offs3)
       (or (accent-longer-than-predecessor-ar d_offs1 d_offs2 d_offs3)
 	  (funcall (mk-accent-has-at-least-duration-ar min-duration) d_offs2))))
 
 
 ;; must contain some bug: some notes that should be accents are not recognised
-(PWGLDef mk-accent->-prep-AND->=-dur-ar ((duration-threshold 1/4))
+(defun mk-accent->-prep-AND->=-dur-ar (&key (duration-threshold 1/4))
   "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are longer than the preceeding note. Additionally, if the succeeding note is of the same length or longer, then they are at least duration-threshold long to count as accented."
-  ()
   #'(lambda (d_offs1 d_offs2 d_offs3)
       (destructuring-bind ((dur1 offs1) (dur2 offs2) (dur3 offs3)) (list d_offs1 d_offs2 d_offs3)
 	(when (every #'plusp (list dur1 dur2 dur3)) ; no rests 
