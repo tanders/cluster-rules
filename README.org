@@ -1,0 +1,4 @@
+* cluster-rules
+
+A library for [[http://www2.siba.fi/PWGL/][PWGL]] that defines rules for the PWGL library [[http://sandred.com/PRISMA/PRISMA.html][Cluster Engine]] by [[http://sandred.com/][Örjan Sandred]].
+
