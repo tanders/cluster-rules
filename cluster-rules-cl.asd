@@ -1,7 +1,7 @@
 ;;; -*- Mode:Lisp; Syntax:ANSI-Common-Lisp; -*-
 
 ;;; *************************************************************
-;;; Copyright (C) 2013 Torsten Anders (torsten.anders@beds.ac.uk) 
+;;; Copyright (C) 2017 Torsten Anders (torsten.anders@beds.ac.uk) 
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License
 ;;; as published by the Free Software Foundation; either version 3
@@ -12,7 +12,7 @@
 ;;; GNU General Public License for more details.
 ;;; *************************************************************
 
-(asdf:defsystem cluster-rules
+(asdf:defsystem cluster-rules-cl
   :description "Rules defined for the cluster-engine by Orjan Sandred." 
   :author "Torsten Anders"
   :version "0.001"
@@ -21,13 +21,14 @@
   :components ((:file "sources/package")
 	       (:file "sources/utils")
 	       (:file "sources/score")
-	       ;; (:file "sources/generic-rules")
 	       (:file "sources/rhythm-rules")
 	       (:file "sources/melody-rules")
 	       (:file "sources/harmony-rules")
 	       (:file "sources/counterpoint-rules")
 	       (:file "sources/export")
-	       (:file "sources/menus"))
+	       (:file "sources/menus")
+	       )
   :depends-on ("cluster-engine" ; "ta-utilities"
-	       ))
+	       )
+  )
 
