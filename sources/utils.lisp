@@ -14,53 +14,52 @@
 
 (in-package :cluster-rules)
 
-(setf ccl::*pwgl-print-max-chars* 1000)
+;; (setf ccl::*pwgl-print-max-chars* 1000)
 
 
 ;; scale->pitchdomain
 
-(PWGLDef scale->pitchdomain ((scale-pitches NIL)
-			     (min 60)
-			     (max 72))
-	 "Expects a list of pitches representing a scale (either pitch classes or absolute pitches), and a minimum and maximum pitch. Returns a pitch domain for clusterengine that contains all pitches between the min and max in the scale."
-	 ()
-	 (let ((pcs (sort (pw::g-mod scale-pitches 12) #'<)))
-	   (loop for pitch from min to max 
-		 when (member (mod pitch 12) pcs)
-		 collect (list pitch))))
+(defun scale->pitchdomain (scale-pitches &key (min 60) (max 72))
+  "Expects a list of pitches representing a scale (either pitch classes or absolute pitches), and a minimum and maximum pitch. Returns a pitch domain for clusterengine that contains all pitches between the min and max in the scale."
+  (let ((pcs (sort (pw::g-mod scale-pitches 12) #'<)))
+    (loop for pitch from min to max 
+       when (member (mod pitch 12) pcs)
+       collect (list pitch))))
 
 
 ;; file-in-this-directory
 
-(PWGLDef file-in-this-directory ((filename NIL))
-	 "Returns a file in the same directory as the patch with the given filename (a string)."
-	 ()
-	 (make-pathname :directory (pathname-directory (ccl::pwgl-patch-pathname))
-			:name filename))
+(defparameter *current-directory* 
+  (pathname-directory *load-truename*))
+
+(defun file-in-this-directory (filename)
+  "Returns a file in the same directory as the patch with the given filename (a string)."
+  (make-pathname :directory *current-directory*
+		 :name filename))
 
 ;; read-lisp-file
 
-(PWGLDef read-lisp-file ((path NIL))
-	 "Expects a path name to a lisp file and returns the read (but not evaluated) content of the file. For example, if the file contains (1 2 3) then the list (1 2 3) is return (i.e., not a string, but a list, but 1 is not called as a function). Note that only the 1st Lisp form in path is returned."
-	 ()
-	 (if (probe-file path)
-	     (with-open-file (stream path)
-			     (read stream))
-	     (warn "path ~A does not exist!" path)))
+(defun read-lisp-file (path)
+  "Expects a path name to a lisp file and returns the read (but not evaluated) content of the file. For example, if the file ; contains (1 2 3) then the list (1 2 3) is return (i.e., not a string, but a list, but 1 is not called as a function). Note that only the 1st Lisp form in path is returned."
+  (if (probe-file path)
+      (with-open-file (stream path)
+	(read stream))
+      (warn "path ~A does not exist!" path)))
 
 
-(PWGLDef pprint-to-file ((path NIL) (expr NIL))
-	 "Pretty-prints to the given path."
-	 ()
-	 (with-open-file (my-stream path
-				    :direction :output
-				    :if-exists :supersede)
-	   (pprint expr my-stream))
-	 path)
+(defun pprint-to-file (path expr)
+  "Pretty-prints to the given path."
+  (with-open-file (my-stream path
+			     :direction :output
+			     :if-exists :supersede)
+    (pprint expr my-stream))
+  path)
 
 
+;;; TODO: decide -- do I actually still need this? If so, then port to plain CL.
 ;; read-harmony-file
 
+#|
 (defclass read-harmony-file-box (PWGL-box) ())
 
 (defmethod patch-value ((self read-harmony-file-box) output)
@@ -120,6 +119,7 @@ pc-transposition: integer added to all chord/scale pitch classes. Useful for dis
   (:class 'read-harmony-file-box :outputs '("scaledurs" "scalepitches" "chorddurs" "chordpitches")
    :groupings '(1 2))
   ())
+|#
 
 
 #|
@@ -155,10 +155,12 @@ pc-transposition: integer added to all chord/scale pitch classes. Useful for dis
 |#
 
 
+;;; TODO: decide -- do I actually still need this? If so, then port to plain CL.
 ;;;
 ;;; Utils for file export
 ;;;
 
+#|
 (defparameter rule::*score-counter* 0 "Incrementing counter for output filename")
 (PWGLDef output-filename ((filename NIL)
 			  &optional
@@ -186,8 +188,9 @@ Optional args:
 					    ext)))
 			  (if (listp extension) extension (list extension)))))
 	     (if (listp extension) filenames (first filenames)))))
+|#
 
-
+#| ;; ENP support not possible without PWGL
 (defvar *enp-path* (user-homedir-pathname))
 (PWGLDef export-enp ((score NIL)
 		     &optional
@@ -203,6 +206,7 @@ Optional arguments:
 	 (when path (setq *enp-path* path))
 	 (with-open-file (s path :direction :output :if-exists :supersede)
 			 (format s "~:@W" (ccl::collect-score-info score :score-notation))))
+|#
 
 
 ;;;
