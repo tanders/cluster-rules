@@ -12,7 +12,7 @@
 ;;; GNU General Public License for more details.
 ;;; *************************************************************
 
-(asdf:defsystem cluster-rules-cl
+(asdf:defsystem cluster-rules
   :description "Rules defined for the cluster-engine by Orjan Sandred." 
   :author "Torsten Anders"
   :version "0.001"
