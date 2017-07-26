@@ -32,7 +32,7 @@
 
 ;; follow-timed-profile-hr
 
-#|
+
 ;; TODO:
 ;; - BUG: In pitch mode, rests (NIL) not (fully) treated -- resulting in errors like 
 ;;    An error occured: In - of (67 NIL) arguments should be of type NUMBER.
@@ -47,21 +47,21 @@
 ;; - OK Update documentation
 ;; - OK handle tempo of score -- tempo must be constant and must be set to 60 (or specify constant tempo as arg?) -- Handle by documenting.
 ;; - OK allow for list of BPFs / voices
-(PWGLDef follow-timed-profile-hr  
-	 ((voices 0)
-	  (mode () (ccl::mk-menu-subview :menu-list '(":pitch" ":rhythm")))
-	  (profile NIL) 
-	  (constrain () (ccl::mk-menu-subview :menu-list '(":profile" ":intervals" ":directions")))
-	  (gracenotes? () (ccl::mk-menu-subview :menu-list '(":normal" ":exclude-gracenotes")))
-	  (interpolate-score? () (ccl::mk-menu-subview :menu-list '(":yes" ":no")))
-	  &key	  
-	  (start 0) 
-	  (end NIL)
-	  (weight-offset 0)
-	  ;; (transform NIL)
-	  ;; (map NIL)
-	  )
-	 "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile (a BPF or voice), taking the timing of the profile into account. For example, if the BPF time values (x values) range from 0 to 2, then the BPF describes a profile over 2 whole notes starting at the beginning of the score.
+(defun follow-timed-profile-hr  
+    (profile     
+     &key
+     (voices 0)
+     (mode :pitch) ; options: :pitch, :rhythm
+     (constrain :profile) ; options: :profile, :intervals, :directions
+     (gracenotes? :normal) ; options: :normal, :exclude-gracenotes
+     (interpolate-score? :yes)  ; options: :yes, :no   	  
+     (start 0) 
+     (end NIL)
+     (weight-offset 0)
+     ;; (transform NIL)
+     ;; (map NIL)
+     )
+  "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile (a BPF or voice), taking the timing of the profile into account. For example, if the BPF time values (x values) range from 0 to 2, then the BPF describes a profile over 2 whole notes starting at the beginning of the score.
 
 Note: The tempo of a profile score is taken into account, but only in a limited way. If symbolic durations should match durations in the score (e.g., 1/4 meaning a quarter note) then set the tempo of the profile score to a constant 60. 
 
@@ -73,7 +73,7 @@ voices (int or list of ints): The voice(s) to which the constraint is applied. I
 
 mode: Select whether to constrain the rhythmic values (rhythm) or the pitches (pitch). If you want to constrain both, then simply use two instances of this rule with different mode settings.
 
-profile: Specifies the profile, which should be followed. This can be either a voice object (or a score/part), a BPF object or a list of any of those. In case a score or part object is given, then only the first voice is extracted and used. If voice objects contains chords, then only the first chord note is extracted. If a list of profiles is specified then these are used for the given different voices.
+profile: Specifies the profile, which should be followed. A profile can either be a list of numbers, a fenv (function envelope), or (if run within Opusmodus) an OMN expression (an Opusmodus part). If the OMN expression contains chords, then only the first chord note is extracted. If a list of profiles is specified, then these are used to constrain multiple given different voices. In this case, the number of profiles, and the number of specified voices to constrain must match.
 
 constrain: Select whether pitch/rhythm should follow the profile directly, or whether pitch/rhythm intervals should follow the intervals between profile, or pitch/rhythm directions should follow the directions of profile intervals.
 
@@ -102,6 +102,7 @@ Other arguments are inherited by hr-rhythm-pitch-one-voice.
 		  (voices-length (length my-voices)))
 	     (mappend #'(lambda (my-profile my-voice my-start my-end)
 			  ;; (format T "follow-timed-profile-hr: my-profile: ~A, voice: ~A~%" my-profile voice)
+			  ;; Internal representation is a fenv to allow for interpolation.
 			  ;; Internal representation is a BPF. A score is transformed into a BPF. This may not be most efficient (compared with, say, using vectors), but it allows to access values at any time point. 
 			  (let* ((BPF-profile 
 				  ;; process different inputs: list of int, BPF, score... 
@@ -225,7 +226,7 @@ Other arguments are inherited by hr-rhythm-pitch-one-voice.
 		      my-voices
 		      (if (listp start) start (make-list voices-length :initial-element start))
 		      (if (and (listp end) (not (null end))) end (make-list voices-length :initial-element end))))))
-|#
+
 
 
 ;; follow-profile-hr
