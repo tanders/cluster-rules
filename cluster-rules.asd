@@ -12,10 +12,13 @@
 ;;; GNU General Public License for more details.
 ;;; *************************************************************
 
+(in-package :asdf-user)
+
 (asdf:defsystem cluster-rules
   :description "Rules defined for the cluster-engine by Orjan Sandred." 
-  :author "Torsten Anders"
-  :version "0.001"
+  :author "Torsten Anders <torsten.anders@beds.ac.uk>"
+  :licence "GNU General Public License, Version 3"
+  :version "0.1"
   ;; :default-component-class ccl::pwgl-source-file
   :serial t ;; the dependencies are linear.
   :components ((:file "sources/package")
