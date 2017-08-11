@@ -32,7 +32,10 @@
 	       (:file "sources/export")
 	       ;; (:file "sources/menus")
 	       )
-  :depends-on ("cluster-engine" ; "ta-utilities"
+  :depends-on ("cluster-engine" 
+               "ta-utilities" ;; e.g., tu:dx->x, tu:mat-trans, but so far only in #+opusmodus code (melody-rules.lisp)
+               #+opusmodus
+               "tot" ; Torsten's Opusmodus Tools
 	       )
   )
 
