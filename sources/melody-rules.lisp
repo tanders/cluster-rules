@@ -110,8 +110,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 			 ((fe:fenv? my-profile) my-profile)
 			 #+opusmodus
 			 ((om:omn-formp my-profile)
-			  (let ((flat-omn (om:flatten 
-					   (om::merge-rests-with-preceeding-note my-profile)))) ; TOT function
+			  (let ((flat-omn (om:flatten (om:length-legato my-profile)))) 
 			    (funcall (case interpolate-score? 
 				       (:no #'fenv:constant-segements-fenv-fn)
 				       (:yes #'fenv:linear-fenv-fn)) 
@@ -125,7 +124,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 			       (case mode
 				 (:pitch 
 				  (let ((pitches (mapcar #'(lambda (x) 
-							     (if (chordp x) 
+							     (if (om:chordp x) 
 								 (first (last (om:melodize x)))
 							       x)) 
 							 (om:omn :pitch flat-omn))))
@@ -235,9 +234,10 @@ A profile as OMN expression with leading rests not yet properly supported.
 ;; follow-profile-hr
 
 
-;; TODO:
+;;; TODO:
+;; - some test ensuring that argument values are in range allowed -- otherwise error (e.g. assert startments?)
 ;; - !! revise for polyphonic case, i.e. allow for a list of lists/fenvs/omn expressions.
-;; - !! Efficiency: change mapped-profile from list into array/vector for faster access during search -- see PWConstraints example.. 
+;; - !! Efficiency: change profile from list into array/vector for faster access during search -- see PWConstraints example.. 
 ;; - Generalise: constrain could also receive a function, which is used for specifying that relation
 ;; - generalise this def for rhythms -- work in progress.
 ;; - ? Add support for "simple score format" by Kilian -- I can more easily transform such scores before handing them over 
