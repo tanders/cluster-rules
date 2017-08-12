@@ -290,20 +290,24 @@ BUG: Rhythm not really constrained?
 		     (fenv:fenv->list profile n)
 		   (progn (warn "Cannot sample BPF with n set to 0") NIL)))
 		#+opusmodus
-		((om:omn-formp my-profile)
+		((om:omn-formp profile)
 		 (case mode
-		   (let ((flat-omn (om:flatten (om::merge-rests-with-preceeding-note profile))))
-		     (:pitch (mapcar #'(lambda (x) 
-					 (if (chordp x) 
-					     (first (last (om:melodize x)))
-					   x)) 
-				     (om:omn :pitch flat-omn))))
+                   (:pitch 
+                    (let ((flat-omn (om:omn-merge-ties 
+                                     (om:flatten (om:length-legato profile)))))
+                      (om:pitch-to-midi
+                       (mapcar #'(lambda (x) 
+                                   (if (om:chordp x) 
+                                     (first (last (om:melodize x)))
+                                     x)) 
+                               (om:omn :pitch flat-omn)))))
 		   (:rhythm (om:omn :length profile))))
 		(T (error "Not a supported profile format: ~A" profile))))
 	 (profile-length (length my-profile)))
     (funcall (case mode
 	       (:pitch #'hr-pitches-one-voice)
 	       (:rhythm #'hr-rhythms-one-voice))
+             ;;; TODO: consider reducing following function (rule) for efficiency, because all case expressions etc. are executed again and again for every variable decision during search
 	     #'(lambda (xs) 
 		 "Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
 		 (let ((l (- (length xs) start)))
