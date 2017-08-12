@@ -50,5 +50,7 @@
 			 output-filename
 			 export-enp))
 	  |#
+          cluster-engine
+          scale->pitchdomain
 	  )
 	:cluster-rules)
