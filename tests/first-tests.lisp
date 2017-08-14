@@ -129,6 +129,7 @@
  )
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; More complex example harmonically transforming a melody (OMN expression) -- ported from Cinderella harmony patch
 ;;;
@@ -198,3 +199,128 @@
    ))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; The more complex example above abstracted / cleaned up
+;;;
+
+;; Input melody to revise -- replace with whatever melody
+;; format: headerless score
+(setf galliard-mel 
+      '(:|1| 
+         ((q e5 f slap+stacc -h q eb5 slap+stacc -h) 
+          (q cs5 f slap+stacc eb5 mp ord f5) (q. g5 e gs5 q c6) (h bb5 q a5) (q fs5 - e d5 cs5) (h a5 q b5) (q. cs5 e bb5 q d6) (q cs6 d6 g5) (h e5 q cs6) (q g5 f slap+stacc a5 mp ord bb5) (q. c6 e cs6 q c6) (e b5 a5 q f5 e5) (h b5 q c6) (q eb5 f slap+stacc -e b5 mp ord d6 cs6) (q. eb6 e b5 q e5) (q gs5 d6 b5) (h gs5 q fs5))))
+
+(setf galliard-harmonies
+      '((h. c4eb4g4a4)
+        (w. c4eb4g4a4)        
+        (w. f4g4a4c4) (w. cs4f4g4b4) (w. b4eb4g4a4) (w. f4a4c4eb4) (w. eb4g4b4cs4) (w. a4cs4eb4g4) (w. cs4f4g4c4) (h. g4b4cs4f4)))
+
+#|
+(setf galliard-harmonic-rhythm
+      (flatten (omn :length galliard-harmonies)))
+|#
+
+(setf galliard-scales
+      (append (length-merge (flatten (omn :length galliard-harmonies))) 
+              (chordize '(c4 cs4 ds4 f4 g4 a4 b4))))
+
+
+; (length-merge (length-rest-invert (flatten (omn :length galliard-mel))))
+
+#|
+;;; tmp for debugging
+(setf score galliard-mel)
+
+(mclist (gen-integer 60 84))
+
+(mclist (apply #'gen-integer (mapcar (lambda (p) (+ p 60)) (find-ambitus (get-part-omn :|1| score)))))
+|#
+
+
+;;; TODO: insert all velo and articulations in score into result
+;; ... solution is repeating melody
+(defun revise-score-harmonically (score harmonies scales
+                                        ;;; TODO: consider allowing to overwrite pitch domain
+                                        ; &key pitch-domains
+                                        ;;; TODO: consider allowing to specify `other rules' as argument 
+                                        )
+  ;;; TODO: extend doc
+  "CSP transforming the input `score' such that it follows the underlying harmony specified. 
+  The rhythm of the input score is left unchanged. The pitches follow the melodic and intervallic profile of the input voices/parts, and various additional constraints are applied.
+  
+  Args:
+  - score (headerless score)
+  - harmonies (OMN expression): chords expressing the underlying harmony such as the harmonic rhythm and chord changes
+  - scales (OMN expression): chords expressing the underlying harmony such as the rhythm of scales and scale changes 
+  - pitch-domains (property list): specifying a pitch domain in the Cluster Engine format for every part in score, using the same instrument ID. If no domain is specified for a certain part then a chromatic domain of the ambitus of the input part is automatically generated.
+  "
+  (cluster-engine-score
+   (let* ((first-part (second score))
+          (time-sigs (PWGL-time-signatures 
+                      (get-time-signature first-part))))
+     (cr:cluster-engine 
+      ;;; TMP: use note no of first part, not part with most notes
+      (count-notes first-part) 
+      ;; rules
+      (let (;; position of all voices in score starting from 2 after scales and chords
+            (voice-ids (gen-integer 2 (+ (length (get-instruments score)) 1))))
+        (ce::rules->cluster 
+         (cr:follow-profile-hr 
+          ;;; TMP - replace with all parts, once cr:follow-profile-hr supports multiple parts
+          first-part 
+          :voices voice-ids :mode :pitch :constrain :profile)
+         (cr:follow-profile-hr 
+          ;;; TMP - replace with all parts, once cr:follow-profile-hr supports multiple parts
+          first-part 
+          :voices voice-ids :mode :pitch :constrain :intervals)
+         (ce:r-predefine-meter time-sigs)
+         ;; more rules
+         (cr:only-scale-pcs :voices voice-ids :input-mode :all 
+                            :scale-voice 0)
+         (cr:only-chord-pcs :voices voice-ids :input-mode :beat ; :1st-beat
+                            :chord-voice 1) 
+         (cr:long-notes-chord-pcs :voices voice-ids :max-nonharmonic-dur 1/4)
+         (cr:stepwise-non-chord-tone-resolution
+          :voices voice-ids :input-mode :all :step-size 3)
+         (cr:chord-tone-before/after-rest :voices voice-ids :input-mode :all)
+         (cr:chord-tone-follows-non-chord-tone :voices voice-ids :input-mode :all)
+         (cr:no-repetition :voices voice-ids :window 3)
+         (cr:resolve-skips :voices voice-ids :resolution-size 4)
+         ))
+      ;; meter domain
+      (remove-duplicates time-sigs :test #'equal) 
+      ;; voice domains
+      `(
+        ; scale rhythm
+        (,(flatten (omn :length scales)))
+        ; scale pitches
+        (,(pitch-to-midi (flatten (omn :pitch scales))))
+        ; harmonic rhythm for chords 
+        (,(flatten (omn :length harmonies)))
+        ; harmony: chords
+        (,(pitch-to-midi (flatten (omn :pitch harmonies))))
+        ,@(mappend #'(lambda (part)
+                       `( 
+                         ;; rhythm domain: predefined motif
+                         (,(flatten (omn :length part)))
+                         ;; pitch domain
+                         ,(mclist
+                           (apply #'gen-integer 
+                                  (mapcar #'(lambda (p) (+ p 60)) 
+                                          (find-ambitus part))))
+                         ))
+                   (get-parts score))
+        ))
+     )))
+
+(setf *default-preview-score-instruments*
+      '(;; silent harmony -- :volume 0
+        :|1| (:program 'violin :sound 'gm :channel 16 :volume 0)
+        :|2| (:program 'violin :sound 'gm :channel 16 :volume 0)
+        :|3| (:program 'violin :sound 'gm :channel 1))
+      )
+
+
+(preview-score 
+ (revise-score-harmonically galliard-mel galliard-harmonies galliard-scales))
