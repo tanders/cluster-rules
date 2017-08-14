@@ -61,8 +61,8 @@
     (profile     
      &key
      (voices 0)
-      ;; basically factor for fenv x values.
-      ;; should this be required arg? Not needed for OMN, but for fenv, and I cannot have a default for fenv     
+     ;; basically factor for fenv x values.
+     ;; should this be required arg? Not needed for OMN, but for fenv, and I cannot have a default for fenv     
      (profile-duration 1)
      (start 0) 
      (end NIL)
@@ -114,25 +114,25 @@ A profile as OMN expression with leading rests not yet properly supported.
 			    (funcall (case interpolate-score? 
 				       (:no #'fenv:constant-segements-fenv-fn)
 				       (:yes #'fenv:linear-fenv-fn)) 
-			     (list
-			      (tu:mat-trans
-			       ;; x values: note start times (skips the last end time)
-			       (let ((omn-dur (om::total-duration flat-omn))) ; tot fun
-				 (mapcar #'(lambda (x) (/ x omn-dur))
-					 (tu:dx->x (om:omn :length flat-omn) 0)))
-			       ;; y values
-			       (case mode
-				 (:pitch 
-				  (let ((pitches (mapcar #'(lambda (x) 
-							     (if (om:chordp x) 
-								 (first (last (om:melodize x)))
-							       x)) 
-							 (om:omn :pitch flat-omn))))
-				    (om:pitch-to-midi (append pitches (last pitches))))
-                                  ;; use omn-encode to ensure numeric rhythmic values?
-                                  (:rhythm 
-				   (let ((ls (om:omn :length flat-omn)))
-				     (append ls (last ls)))))))))))
+				     (list
+				      (tu:mat-trans
+				       ;; x values: note start times (skips the last end time)
+				       (let ((omn-dur (om::total-duration flat-omn))) ; tot fun
+					 (mapcar #'(lambda (x) (/ x omn-dur))
+						 (tu:dx->x (om:omn :length flat-omn) 0)))
+				       ;; y values
+				       (case mode
+					 (:pitch 
+					  (let ((pitches (mapcar #'(lambda (x) 
+								     (if (om:chordp x) 
+									 (first (last (om:melodize x)))
+								       x)) 
+								 (om:omn :pitch flat-omn))))
+					    (om:pitch-to-midi (append pitches (last pitches))))
+					  ;; use omn-encode to ensure numeric rhythmic values?
+					  (:rhythm 
+					   (let ((ls (om:omn :length flat-omn)))
+					     (append ls (last ls)))))))))))
 			 (T (error "Not a supported profile format: ~A" my-profile)))))	
 		   (flet ((profile-hr (curr-var time)
 				      "Defines core of profile heuristic. Essentially, returns the abs difference between current pitch/rhythm and the profile value at time."
@@ -219,7 +219,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 				 (or 
 				  #+opusmodus (om:omn-formp x)
 				  (_number-list? x)
-				  (fe:fenv x)))
+				  (fe:fenv? x)))
 			     profile))
                  profile
 	       (make-list voices-length :initial-element profile))
@@ -236,7 +236,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 
 ;;; TODO:
 ;; - some test ensuring that argument values are in range allowed -- otherwise error (e.g. assert startments?)
-;; - !! revise for polyphonic case, i.e. allow for a list of lists/fenvs/omn expressions.
+;; - OK revise for polyphonic case, i.e. allow for a list of lists/fenvs/omn expressions.
 ;; - !! Efficiency: change profile from list into array/vector for faster access during search -- see PWConstraints example.. 
 ;; - Generalise: constrain could also receive a function, which is used for specifying that relation
 ;; - generalise this def for rhythms -- work in progress.
@@ -251,7 +251,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 ;; - OK Predefine some functions for transform and map
 ;; - OK How to handle rests in a given score? The current code simply ignores them, only returns notes of pitches. However, if rest are included then the pitch profile is still folled by the notes, so it appears I only need to deal with rests in the rhythmic variant of this definition.
 (defun follow-profile-hr
-    (profile
+    (profiles
      &key
      (voices 0)
      (n 0)
@@ -263,7 +263,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 
 Args:
 
-- profile (a list of numbers, a fenv, or -- when using Opusmodus -- an OMN sequence): Specifies the profile to be followed. In case an OMN sequence contains chords, then only the first chord note is extracted. In case a fenv is given, then that fenv is sampled (n equidistant samples) and the y values are used.
+- profile (a list of numbers, a fenv, or -- when using Opusmodus -- an OMN sequence, or a list of any of these): Specifies the profile to be followed. In case an OMN sequence contains chords, then only the first chord note is extracted. In case a fenv is given, then that fenv is sampled (n equidistant samples) and the y values are used. If multiple profiles are given, they are applied to the given voices in the same order.  
 
 - voices (int or list of ints): The voice(s) to which the constraint is applied. 
 
@@ -280,71 +280,88 @@ Args:
 
 Note: If this rule is used with pitch/rhythm motifs, then only the selection of the 1st motif note is controlled by the rule (in future it would be nice to control the average pitch/rhythm of motifs, but that would require different rule applicators).
 
-BUG: Rhythm not really constrained?
+BUG: mode :rhythm not yet working.
 "
-  (let* ((my-profile 
-	  ;; process different inputs: list of int, BPF, score... 
-	  (cond ((_number-list? profile) profile) 
-		((fe:fenv? profile)
-		 (if (> n 0)  
-		     (fenv:fenv->list profile n)
-		   (progn (warn "Cannot sample BPF with n set to 0") NIL)))
-		#+opusmodus
-		((om:omn-formp profile)
-		 (case mode
-                   (:pitch 
-                    (let ((flat-omn (om:omn-merge-ties 
-                                     (om:flatten (om:length-legato profile)))))
-                      (om:pitch-to-midi
-                       (mapcar #'(lambda (x) 
-                                   (if (om:chordp x) 
-                                     (first (last (om:melodize x)))
-                                     x)) 
-                               (om:omn :pitch flat-omn)))))
-		   (:rhythm (om:omn :length profile))))
-		(T (error "Not a supported profile format: ~A" profile))))
-	 (profile-length (length my-profile)))
-    (funcall (case mode
-	       (:pitch #'hr-pitches-one-voice)
-	       (:rhythm #'hr-rhythms-one-voice))
-             ;;; TODO: consider reducing following function (rule) for efficiency, because all case expressions etc. are executed again and again for every variable decision during search
-	     #'(lambda (xs) 
-		 "Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
-		 (let ((l (- (length xs) start)))
-		   (if (and (> l 0)
-			    (or (= n 0) (<= l n))
-			    (<= l profile-length))
-		       (- weight-offset
-			  (abs
-			   ;; process different settings for constrain
-			   (case constrain
-			     (:profile  (- (first (last xs)) (nth (1- l) my-profile)))
-			     (:intervals (if (>= l 2)
-					     (case mode
-					       ;; distance between distances of last two vals
-					       (:pitch (- (abs (- (apply #'- (last xs 2))
-								  (- (nth (- l 2) my-profile)
-								     (nth (- l 1) my-profile))))))
-					       ;; for rhythm distance is quotient not difference
-					       ;; TODO: unfinished for rhythm -- how to compute distance of distances?
-					       (:rhythm (abs (- (apply #'/ (last xs 2))
-								(/ (nth (- l 2) my-profile)
-								   (nth (- l 1) my-profile))))))
-					   0))
-			     ;; distance between directions of last two vals
-			     ;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
-			     (:directions (if (>= l 2)
-					      (- (apply #'_direction-int (last xs 2))
-						 (_direction-int
-						  (nth (- l 2) my-profile)
-						  (nth (- l 1) my-profile)))
-					    0)))))
-		     ;; otherwise no preference
-		     0)))
-	     voices
-	     (case mode
-	       (:pitch :all-pitches)
-	       (:rhythm :list-with-all-durations)))))
+  (let* ((my-voices (tu:ensure-list voices))
+	 (voices-length (length my-voices)))    
+    (mappend 
+     #'(lambda (profile-voice)
+	 (let* ((profile (first profile-voice))
+		(voice (second profile-voice))
+		(my-profile 
+		 ;; process different inputs: list of int, BPF, score... 
+		 (cond ((_number-list? profile) profile) 
+		       ((fe:fenv? profile)
+			(if (> n 0)  
+			    (fenv:fenv->list profile n)
+			  (progn (warn "Cannot sample BPF with n set to 0") NIL)))
+		       #+opusmodus
+		       ((om:omn-formp profile)
+			(case mode
+			  (:pitch 
+			   (let ((flat-omn (om:omn-merge-ties 
+					    (om:flatten (om:length-legato profile)))))
+			     (om:pitch-to-midi
+			      (mapcar #'(lambda (x) 
+					  (if (om:chordp x) 
+					      (first (last (om:melodize x)))
+					    x)) 
+				      (om:omn :pitch flat-omn)))))
+			  (:rhythm (om:omn :length profile))))
+		       (T (error "Not a supported profile format: ~A" profile))))
+		(profile-length (length my-profile)))
+	   (funcall (case mode
+		      (:pitch #'hr-pitches-one-voice)
+		      (:rhythm #'hr-rhythms-one-voice))
+		    ;;; TODO: consider reducing following function (rule) for efficiency, because all case expressions etc. are executed again and again for every variable decision during search
+		    #'(lambda (xs) 
+			"Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
+			(let ((l (- (length xs) start)))
+			  (if (and (> l 0)
+				   (or (= n 0) (<= l n))
+				   (<= l profile-length))
+			      (- weight-offset
+				 (abs
+				  ;; process different settings for constrain
+				  (case constrain
+				    (:profile  (- (first (last xs)) (nth (1- l) my-profile)))
+				    (:intervals (if (>= l 2)
+						    (case mode
+						      ;; distance between distances of last two vals
+						      (:pitch (- (abs (- (apply #'- (last xs 2))
+									 (- (nth (- l 2) my-profile)
+									    (nth (- l 1) my-profile))))))
+						      ;; for rhythm distance is quotient not difference
+						      ;; TODO: unfinished for rhythm -- how to compute distance of distances?
+						      (:rhythm (abs (- (apply #'/ (last xs 2))
+								       (/ (nth (- l 2) my-profile)
+									  (nth (- l 1) my-profile))))))
+						  0))
+				    ;; distance between directions of last two vals
+				    ;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
+				    (:directions (if (>= l 2)
+						     (- (apply #'_direction-int (last xs 2))
+							(_direction-int
+							 (nth (- l 2) my-profile)
+							 (nth (- l 1) my-profile)))
+						   0)))))
+			    ;; otherwise no preference
+			    0)))
+		    voice
+		    (case mode
+		      (:pitch :all-pitches)
+		      (:rhythm :list-with-all-durations)))))
+     (tu:mat-trans
+      (list (if (and (listp profiles) 
+		     (every #'(lambda (x)
+				(or 
+				 #+opusmodus (om:omn-formp x)
+				 (_number-list? x)
+				 (fe:fenv? x)))
+			    profiles))
+		profiles
+	      (make-list voices-length :initial-element profiles))
+	    my-voices)))))
 
 
 #|
