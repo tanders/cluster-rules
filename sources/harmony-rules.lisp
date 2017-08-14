@@ -300,7 +300,7 @@ Other arguments are inherited from r-pitch-pitch."
 	      (r-pitch-pitch #'(lambda (pitches1 pitches2)
 				 ;; Every pitchesN is a list of the form (chord-pitches voice-pitch) 
 				 (if (and (first pitches1) (first pitches2)
-					  (second pitches2) (second pitches2))  ;; no rests
+					  (second pitches1) (second pitches2))  ;; no rests
 				     (let ((chord-pitches1 (first pitches1))
 					   (voice-pitch1 (second pitches1))
 					   (chord-pitches2 (first pitches2))
