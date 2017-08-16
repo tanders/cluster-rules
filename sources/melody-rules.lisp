@@ -42,6 +42,15 @@
 	((= x1 x2) 1)
 	((> x1 x2) 0)))
 
+#+opusmodus
+(defun total-omn-duration (sequence)
+  "Returns the total duration (length) of `sequence', i.e. the sum of the length of all its notes and rests.
+
+  Example:
+  ;;; (total-duration '((h c4 q) (q h tie) (h.)))
+  ;;; => 9/4"
+  (reduce #'+ (mapcar #'abs (om:omn :length (om:flatten-omn sequence)))))
+
 
 ;; TODO:
 ;; - BUG: In pitch mode, rests (NIL) not (fully) treated -- resulting in errors like 
@@ -117,7 +126,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 				     (list
 				      (tu:mat-trans
 				       ;; x values: note start times (skips the last end time)
-				       (let ((omn-dur (om::total-duration flat-omn))) ; tot fun
+				       (let ((omn-dur (total-omn-duration flat-omn))) 
 					 (mapcar #'(lambda (x) (/ x omn-dur))
 						 (tu:dx->x (om:omn :length flat-omn) 0)))
 				       ;; y values

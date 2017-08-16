@@ -34,8 +34,7 @@
 	       )
   :depends-on ("cluster-engine" 
                "ta-utilities" ;; e.g., tu:dx->x, tu:mat-trans, but so far only in #+opusmodus code (melody-rules.lisp)
-               #+opusmodus
-               "tot" ; Torsten's Opusmodus Tools
+               ;; #+opusmodus "tot" ; Torsten's Opusmodus Tools -- would result in circular dependencies
 	       )
   )
 
