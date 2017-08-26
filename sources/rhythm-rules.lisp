@@ -738,32 +738,37 @@ Other arguments are inherited from r-note-meter.
 
 "
   ;; r-note-meter constraints all events of the given voice(s)
-  (r-note-meter (let* ((rule (case accent-rule
-			       (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
-			       (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
-			       (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
-			       (otherwise accent-rule)))
-		       (length-rule-args (length (ccl::function-lambda-list rule))))
-		  ;; create a function with same number of args as given rule
-		  (cond ((= length-rule-args 1)
-			 #'(lambda (d_offs) 
-			     (accent-strictness 
-			      strictness (funcall rule d_offs) (= (second d_offs) 0))))
-			((= length-rule-args 2)
-			 #'(lambda (d_offs1 d_offs2) 
-			     (accent-strictness 
-			      strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
-			((= length-rule-args 3)
-			 #'(lambda (d_offs1 d_offs2 d_offs3) 
-			     (accent-strictness 
-			      strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
-			(T (error "Rule ~A with unsupported number of arguments" rule))))
-		voices
-		:d_offs
-		metric-structure
-		:incl-rests
-		gracenote-mode
-		rule-type weight))
+  (r-note-meter 
+   (let* ((rule (case accent-rule
+                  (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
+                  (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
+                  (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
+                  (otherwise accent-rule)))
+          (length-rule-args (length
+                             #+opusmodus (ccl:arglist rule)
+                             #+lispworks (ccl::function-lambda-list rule)
+                             #+SBCL (sb-kernel:%simple-fun-arglist rule)
+                             )))
+     ;; create a function with same number of args as given rule
+     (cond ((= length-rule-args 1)
+            #'(lambda (d_offs) 
+                (accent-strictness 
+                 strictness (funcall rule d_offs) (= (second d_offs) 0))))
+           ((= length-rule-args 2)
+            #'(lambda (d_offs1 d_offs2) 
+                (accent-strictness 
+                 strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
+           ((= length-rule-args 3)
+            #'(lambda (d_offs1 d_offs2 d_offs3) 
+                (accent-strictness 
+                 strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
+           (T (error "Rule ~A with unsupported number of arguments" rule))))
+   voices
+   :d_offs
+   metric-structure
+   :incl-rests
+   gracenote-mode
+   rule-type weight))
 
 
 (defun accents-in-other-voice
@@ -797,32 +802,37 @@ Other arguments are inherited from r-rhythm-rhythm.
 "
   (mapcar #'(lambda (voice)
 	      ;; r-note-meter constraints all events of voice
-	      (r-rhythm-rhythm (let* ((rule (case accent-rule
-					      (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
-					      (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
-					      (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
-					      (otherwise accent-rule)))
-				      (length-rule-args (length (ccl::function-lambda-list rule))))
-				 ;; create a function with same number of args as given rule
-				 (cond ((= length-rule-args 1)
-					#'(lambda (d_offs) 
-					    (accent-strictness 
-					     strictness (funcall rule d_offs) (= (second d_offs) 0))))
-				       ((= length-rule-args 2)
-					#'(lambda (d_offs1 d_offs2) 
-					    (accent-strictness 
-					     strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
-				       ((= length-rule-args 3)
-					#'(lambda (d_offs1 d_offs2 d_offs3) 
-					    (accent-strictness 
-					     strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
-				       (T (error "Rule ~A with unsupported number of arguments" rule))))
-			       voice
-			       accents-voice
-			       :d1_offs
-			       :norm
-			       :at-durations-v1				    
-			       ))
+	      (r-rhythm-rhythm
+               (let* ((rule (case accent-rule
+                              (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
+                              (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
+                              (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
+                              (otherwise accent-rule)))
+                      (length-rule-args (length
+                                         #+opusmodus (ccl:arglist rule)
+                                         #+lispworks (ccl::function-lambda-list rule)
+                                         #+SBCL (sb-kernel:%simple-fun-arglist rule)
+                                         )))
+                 ;; create a function with same number of args as given rule
+                 (cond ((= length-rule-args 1)
+                        #'(lambda (d_offs) 
+                            (accent-strictness 
+                             strictness (funcall rule d_offs) (= (second d_offs) 0))))
+                       ((= length-rule-args 2)
+                        #'(lambda (d_offs1 d_offs2) 
+                            (accent-strictness 
+                             strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
+                       ((= length-rule-args 3)
+                        #'(lambda (d_offs1 d_offs2 d_offs3) 
+                            (accent-strictness 
+                             strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
+                       (T (error "Rule ~A with unsupported number of arguments" rule))))
+               voice
+               accents-voice
+               :d1_offs
+               :norm
+               :at-durations-v1				    
+               ))
 	  (if (listp voices) voices (list voices))))
 
 ;; (defun d1_offs_d2->d_offs (d1_offs_d2)
