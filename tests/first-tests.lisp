@@ -44,8 +44,8 @@
                       (cr::no-repetition))
   '((3 4)) 
   '(((1/4) (1/8))
-    ((60) (61))))
- )
+    ((60) (61)))))
+
 
 ;;; BUG: metric domain of multiple values seemingly always results in static meter
 (preview-cluster-engine-score
