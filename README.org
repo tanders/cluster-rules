@@ -26,6 +26,17 @@ $ git clone https://github.com/tanders/ta-utilities.git
 #+end_src
 
 
+** Updating your software
+
+   If there are [[https://github.com/tanders/cluster-rules/commits/master][changes]], you can update your software later at the terminal in the following way.
+
+#+begin_src bash :tangle yes
+$ cd ~/common-lisp/cluster-rules
+$ git pull
+#+end_src
+
+  
+
 * Usage
 
   The library cluster-rules provides predefined rules and some utilities for [[https://github.com/tanders/cluster-engine][Cluster Engine]]. Below is a minimal example that disallows pitch repetitions and syncopations in a monophonic line with two rules from the present library.
