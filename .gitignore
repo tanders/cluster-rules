@@ -3,6 +3,7 @@
 
 # Compiled files
 *.clufasl
+*.fasl
 
 # System files
 .DS_Store
