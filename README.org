@@ -1,6 +1,6 @@
 * cluster-rules
 
-  An extension of the music constraint solver [[https://github.com/tanders/cluster-engine][Cluster Engine]] by [[http://sandred.com/][Örjan Sandred]]. Like Cluster Engine, this code was originally a PWGL library, but the present version is plain Common Lisp. 
+  The library cluster-rules is an extension of the music constraint solver [[https://github.com/tanders/cluster-engine][Cluster Engine]] by [[http://sandred.com/][Örjan Sandred]]. Like Cluster Engine, this code was originally a PWGL library, but the present version is plain Common Lisp. 
 
 
 * Installation
@@ -21,6 +21,7 @@ $ git clone https://github.com/tanders/cluster-rules.git
   Fenv depends on two other libraries, which you can install in the same way.
 
 #+begin_src bash :tangle yes
+$ cd ~/common-lisp
 $ git clone https://github.com/tanders/cluster-engine.git
 $ git clone https://github.com/tanders/ta-utilities.git
 #+end_src
@@ -38,6 +39,13 @@ $ git pull
   
 
 * Usage
+
+  This library is an [[https://common-lisp.net/project/asdf/][ASDF]] system (ASDF is the de facto standard for building Common Lisp software), and you can load it into your Lisp compiler as follows. All dependency libraries (such as cluster-engine) are loaded automatically as well. 
+   
+#+begin_src lisp :tangle yes
+(require :cluster-rules)
+#+end_src  
+
 
   The library cluster-rules provides predefined rules and some utilities for [[https://github.com/tanders/cluster-engine][Cluster Engine]]. Below is a minimal example that disallows pitch repetitions and syncopations in a monophonic line with two rules from the present library.
 
