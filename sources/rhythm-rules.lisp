@@ -712,16 +712,25 @@ Arg strictness is a keyword switching bewtween three cases.
        (accent-rule :longer-than-predecessor)
        ;; strictness options: :note, :position, :note-n-position
        (strictness :note)
+       (format :d_offs) ; options: :d_offs, :d_offs_m, :d_offs_m_n (NOTE: value :offs not supported)
        (gracenote-mode :normal) ; options: :normal, :excl-gracenotes 
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "Restricts where metric accents occur depending on the underlying meter. If an accent occurs, then it is on the position defined. 
 
+
 Args:
   metric-structure: Position where accents are controlled (on any beat or the first beat of a measure).
 
-  accent-rule (menu item or function): A function returning true if an accent is expressed and nil otherwise. The function expects one of more arguments, all in the form (dur offs), where dur is the duration of a note and offs is the offset to the following accent (i.e. the duration until the following accent). Example: '(1/4 -1/8). A note is 'on' the accent if its offset = 0. 
+  accent-rule (menu item or function): A function returning true if an accent is expressed and nil otherwise. The function expects one of more arguments, all by default (if format is :d_offs) in the form (dur offs), where dur is the duration of a note and offs is the offset to the following accent (i.e. the duration until the following accent). Example: '(1/4 -1/8). A note is 'on' the accent if its offset = 0. 
 Some accent rules are predefined and can be simply selected in the menu of the argument. Other predefined accent rules expect additional arguments controlling their effect. These are available under the Cluster Rules sub menu rhythm - accent rules. 
+
+  When accent-rule expects multiple arguments (data for multiple consecutive notes), on which note the metric accent is forced to occur depends on the number of arguments expected by accent-rule.
+    - 1 argument: that note
+    - 2 arguments: the second note
+    - 3 arguments: the second note
+    - 4 arguments: the fourth note
+    More arguments are currently not supported.
 
   Some accent rules are predefined and can be simply selected in the menu of the argument. 
     :longer-than-predecessor: Accented notes are longer than the preceeding note and at least as long as the succeeding note. BUG: not constrained for first and last 2 notes! (fixing that needs more flexible rule applicators)
@@ -738,39 +747,45 @@ Other arguments are inherited from r-note-meter.
 
 "
   ;; r-note-meter constraints all events of the given voice(s)
-  (r-note-meter 
-   (let* ((rule (case accent-rule
-                  (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
-                  (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
-                  (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
-                  (otherwise accent-rule)))
-          (length-rule-args (length
-                             #+opusmodus (ccl:arglist rule)
-                             #+lispworks (ccl::function-lambda-list rule)
-                             #+SBCL (sb-kernel:%simple-fun-arglist rule)
-                             )))
-     ;; create a function with same number of args as given rule
-     (cond ((= length-rule-args 1)
-            #'(lambda (d_offs) 
-                (accent-strictness 
-                 strictness (funcall rule d_offs) (= (second d_offs) 0))))
-           ((= length-rule-args 2)
-            #'(lambda (d_offs1 d_offs2) 
-                (accent-strictness 
-                 strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
-           ((= length-rule-args 3)
-            #'(lambda (d_offs1 d_offs2 d_offs3) 
-                (accent-strictness 
-                 strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
-           (T (error "Rule ~A with unsupported number of arguments" rule))))
-   voices
-   :d_offs
-   metric-structure
-   :incl-rests
-   gracenote-mode
-   rule-type weight))
+  (flet ((offset (args) (second args)))
+    (r-note-meter 
+     (let* ((rule (case accent-rule
+		    (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
+		    (:longer-than-predecessor-strict #'accent-longer-than-predecessor-strict-ar)
+		    (:longer-than-neighbours #'accent-longer-than-neighbours-ar)
+		    (otherwise accent-rule)))
+	    (length-rule-args (length
+			       #+opusmodus (ccl:arglist rule)
+			       #+lispworks (ccl::function-lambda-list rule)
+			       #+SBCL (sb-kernel:%simple-fun-arglist rule)
+			       )))
+       ;; create a function with same number of args as given rule
+       (cond ((= length-rule-args 1)
+	      #'(lambda (args1) 
+		  (accent-strictness 
+		   strictness (funcall rule args1) (= (offset args1) 0))))
+	     ((= length-rule-args 2)
+	      #'(lambda (args1 args2) 
+		  (accent-strictness 
+		   strictness (funcall rule args1 args2) (= (offset args2) 0))))
+	     ((= length-rule-args 3)
+	      #'(lambda (args1 args2 args3) 
+		  (accent-strictness 
+		   strictness (funcall rule args1 args2 args3) (= (offset args2) 0))))
+	     ((= length-rule-args 4)
+	      #'(lambda (args1 args2 args3 args4) 
+		  (accent-strictness 
+		   strictness (funcall rule args1 args2 args3 args4) (= (offset args3) 0))))
+	     (T (error "Rule ~A with unsupported number of arguments" rule))))
+     voices
+     format
+     metric-structure
+     :incl-rests
+     gracenote-mode
+     rule-type weight)))
 
 
+;;; TODO: support different formats, see metric-accents above
 (defun accents-in-other-voice
     (&key
        (voices 1)
