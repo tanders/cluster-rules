@@ -124,6 +124,45 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 	  (if (listp voices) voices (list voices))))
 
 
+(defun in-spectrum? (pitches)
+  "The pitches of (first pitches) is in the list in (second pitches)."
+  (let ((ps1 (first pitches))
+	(ps2 (second pitches)))
+    (if (and ps1 ps2) ;; no rests
+	(progn 
+	  ; (BREAK)
+	  (member ps1 ps2))
+	T)))
+
+(defun only-spectrum-pitches (&key
+				(voices 2)
+				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
+				(gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+				(rule-type :true/false) ; options: :true/false :heur-switch
+				(weight 1)
+				(chord-voice 1))
+  "Pitches in the given voice must be a member of the underlying spectrum (its absolute pitches). The spectrum is represented as a simultaneous chord in another voice (voice 1 by default). 
+
+Args: 
+voices (int or list of ints): the voice(s) to which this constraint is applied.
+
+Optional args:
+spectrum-voice (int, default 1): the voice representing the underlying spectra (quasi underlying harmony).
+
+Other arguments are inherited from r-pitch-pitch. For example, it is possible to control whether this constraint should be applied to all notes, or only specific notes (input-mode). By default, it is applied to notes starting on a beat.
+
+This rule is very similar to only-chord-PCs, but instead of pitch classes absolute pitches are constrained to the pitches of the given spectrum (quasi chord). "  
+  (mapcar #'(lambda (voice)
+	      (r-pitch-pitch #'in-spectrum?
+			     (list voice chord-voice)
+			     '(0)
+			     input-mode
+			     gracenotes?
+			     :pitch
+			     rule-type weight))
+	  (if (listp voices) voices (list voices))))
+
+
 
 (defun long-notes-chord-PCs (&key
 			       (voices 2)
