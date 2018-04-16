@@ -20,6 +20,7 @@
 	  accents-in-other-voice
 	  ;;;; accent rules
 	  mk-accent-has-at-least-duration-ar mk-accent->-prep-AND->=-dur-ar mk-accent->-prep-OR->=-dur-ar
+	  thomassen-accents thomassen-accents-ar
 	  ;; ;;;; Cluster Engine
 	  ;; cluster-engine::r-predefine-meter cluster-engine::r-metric-hierarchy cluster-engine::r-rhythm-hierarchy
 	  ;; melody
@@ -30,7 +31,7 @@
 	  ;; ;;;; Cluster Engine
 	  ;; cluster-engine::r-mel-interval-one-voice
 	  ;; harmony
-	  only-scale-PCs only-chord-PCs long-notes-chord-PCs chord-tone-before/after-rest
+	  only-scale-PCs only-chord-PCs only-spectrum-pitches long-notes-chord-PCs chord-tone-before/after-rest
 	  chord-PC-at-1st-tone-HACK stepwise-non-chord-tone-resolution chord-tone-follows-non-chord-tone
 	  unequal-sim-PCs number-of-sim-PCs set-harmonic-intervals min/max-harmonic-interval
 	  tintinnabuli-M-voice tintinnabuli-T-voice
