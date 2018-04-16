@@ -958,6 +958,111 @@ Other arguments are inherited from r-rhythm-rhythm.
 
 
 
+;;;
+;;; Thomassen accent model
+;;;
+
+;;; TODO: Efficiency: using a different data structure than nested lists, e.g., arrays?
+(defun thomassen-accents-aux (midi-pitches)
+  "Aux for three MIDI pitch ints."
+  (let* ((thomassen-data '(((:equal :equal) (0.0 0.0))
+			   ((:equal :up) (0.0 1.0))
+			   ((:equal :down) (0.0 1.0))
+			   
+			   ((:up :equal) (1.0 0.0))
+			   ((:up :up) (0.33 0.67))
+			   ((:up :down) (0.83 0.17))
+			   
+			   ((:down :equal) (1.0 0.0))
+			   ((:down :up) (0.71 0.29))
+			   ((:down :down) (0.5 0.5))
+			   ))
+	 (found-match (find (mapcar #'(lambda (x)
+					(cond ((> x 0) :up)
+					      ((= x 0) :equal)
+					      ((< x 0) :down)))
+				    (tu:x->dx midi-pitches))	  
+			    thomassen-data
+			    :key #'first
+			    :test #'equal)))
+    (second found-match)))
+
+; (thomassen-accents-aux '(60 64 60))
+
+#| ;; testing Thomassen data
+
+(setf thomassen-data '(((:equal :equal) (0.0 0.0))
+		       ((:equal :up) (0.0 1.0))
+		       ((:equal :down) (0.0 1.0))
+		       
+		       ((:up :equal) (1.0 0.0))
+		       ((:up :up) (0.33 0.67))
+		       ((:up :down) (0.83 0.17))
+		       
+		       ((:down :equal) (1.0 0.0))
+		       ((:down :up) (0.71 0.29))
+		       ((:down :down) (0.5 0.5))
+		       ))
+(setf thomassen-numbers (sort (remove-duplicates (flatten (mapcar #'second thomassen-data))) #'<))
+
+;; NOTE: List of all possible accent values when allowing for arbitrary combinations of data. Some of these values may not be possible in reality.
+;; Accent value 0.335 occurs for mere local max and min. Slightly higher values (0.36) only for accents expressed by local max prepared by two upwards steps.
+(sort (remove-duplicates
+       (loop for a1 in thomassen-numbers
+	  append (loop for a2 in thomassen-numbers
+		    collect (* a1 a2))))
+      #'<)
+=> (0.0 0.028900001 0.0493 0.056100003 0.08409999 0.085 0.0957 0.10890001 0.113900006 0.120699994 0.1411 0.145 0.165 0.17 0.1943 0.20589998 0.22110002 0.2343 0.24069999 0.25 0.2739 0.29 0.33 0.335 0.355 0.415 0.4489 0.4757 0.5 0.50409997 0.5561 0.5893 0.67 0.6889 0.71 0.83 1.0)
+
+|#
+
+
+(defun thomassen-accents (midi-pitches)
+  "Expects a list of MIDI note numbers (ints) representing a melodic sequence, and returns a list of floats representing the associated melodic accent value of each pitch as defined by the Thomassen model (Thomassen, 1982).
+
+NOTE: no accent values are available for the first two and the last pitch, therefore nil is return for those pitches.
+
+A list of all potential accent strength values is shown below, obtained by systematically combining all values of the model (some of these values may not be possible in reality). High accent values (0.415) are mapped to accents expressed by local max prepared by two upwards steps. Slightly lower accent values (0.355) occur for accents prepared by two downward steps, followed by an upward step.
+
+Accent value 0.335 seems to occurs for mere local max and min (or only local max?). 
+
+(0.0 0.028900001 0.0493 0.056100003 0.08409999 0.085 0.0957 0.10890001 0.113900006 0.120699994 0.1411 0.145 0.165 0.17 0.1943 0.20589998 0.22110002 0.2343 0.24069999 0.25 0.2739 0.29 0.33 0.335 0.355 0.415 0.4489 0.4757 0.5 0.50409997 0.5561 0.5893 0.67 0.6889 0.71 0.83 1.0)
+
+* References:
+
+Thomassen, J. M. (1982) Melodic accent: Experiments and a tentative model. The Journal of the Acoustical Society of America. 71 (6), 1596–1605."
+  (append '(nil nil)
+	  (tu:map-neighbours
+	   #'(lambda (pair1 pair2)
+	       (* (second pair1) (first pair2)))
+	   (tu:map-neighbours #'(lambda (p1 p2 p3)
+				  (thomassen-accents-aux (list p1 p2 p3)))
+			      midi-pitches))
+	  '(nil)))
+
+#|
+(thomassen-accents '(60 62 64 67 65 64 64 62 67 67 60))
+|#
+
+;;; TODO: Make accent strength an arg of a function that returns the accent rule.
+(defun thomassen-accents-ar (&optional (thomassen-accent-strength 0.4))
+  #'(lambda (n1 n2 n3 n4)
+      "Accent rule for metric-accents or accents-in-other-voice. Accented notes are melodic accents according to the Thomassen model (Thomassen, 1982). See the documentation of function thomassen-accents for more details on this model and the reference.
+
+NOTE: This is an expensive constraint performance-wise (i.e. the search can take very long): the constraint defines a relation between four consecutive notes, the metric positions (offset value) of the but-last note and the melodic intervals of these four notes. Best use only for small and/or monophonic results.
+
+NOTE: This constraint requires the format :d_offs_m_n for the functions metric-accents or accents-in-other-voice.
+"
+      ;; TODO: many unused variables -- avoid them somehow
+      (destructuring-bind ((dur1 offs1 meter1 pitch1) 
+			   (dur2 offs2 meter2 pitch2)
+			   (dur3 offs3 meter3 pitch3)
+			   (dur4 offs4 meter4 pitch4))
+	  (list n1 n2 n3 n4)
+	(when (every #'plusp (list dur1 dur2 dur3 dur4)) ; no rests 
+	  (let ((accents (thomassen-accents (list pitch1 pitch2 pitch3 pitch4))))
+	    (> (third accents) thomassen-accent-strength))))))
+
 
 
 #|
@@ -972,5 +1077,3 @@ Other arguments are inherited from r-rhythm-rhythm.
 (= x1 x6)) 
 
 |#
-
-
