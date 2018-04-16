@@ -26,6 +26,13 @@
 ;;;
 ;;;
 
+#| ;; TODO: ideas for more rules
+
+Strict profile rule: roughtly preserve intervals between local maxima. Argument specifies how many semitones the interval can be off in a solution compared with the given profile. However, if the interval between maxima is only small, then that small distance should be preserved. So, perhaps have two arguments: specifying how far close intervals (up to 2-3 semitones) can be off, and how far larger intervals can be off.
+
+|#
+
+
 
 (in-package :cluster-rules)
 
