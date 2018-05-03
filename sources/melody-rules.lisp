@@ -514,7 +514,7 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
 			       (voices 0)						       
 			       (rule-type :true/false) ; options: :true/false :heur-switch
 			       (weight 1))
-  "Disallows any direct pitch repetition. 
+  "Disallows any direct pitch or chord repetition. 
 
 Args: 
 voices: the number of the voice(s) to constrain.
@@ -522,12 +522,11 @@ voices: the number of the voice(s) to constrain.
 Optional arguments are inherited from r-pitches-one-voice."
   (r-pitches-one-voice #'(lambda (p1 p2) 
 			   (if (and p1 p2) ; no rests
-			       (/= p1 p2)
+			       (not (equal p1 p2))
 			       T))
 		       voices
 		       :pitches
 		       rule-type weight))
-
 
 ;; no-repetition
 
@@ -537,7 +536,7 @@ Optional arguments are inherited from r-pitches-one-voice."
 			(mode :pitches) ; options: :pitches, :pcs
 			(rule-type :true/false) ; options: :true/false :heur-switch
 			(weight 1))
-  "Disallows pitch repetitions within a window of a give number of notes.
+  "Disallows repetitions within a window of a give number of melodic notes or chords. 
 
 Args: 
 voices: the number of the voice(s) to constrain.
@@ -549,14 +548,14 @@ Optional arguments are inherited from r-pitches-one-voice."
 			   (let* ((ps (mapcar #'(lambda (p)
 						  (case mode 
 						    (:pitches p)
-						    (:pcs (mod p 12))))
+						    (:pcs (pitch->pc p))))
 					      (last pitches window)))
 				  (p1 (first (last ps))))
 			     (if p1 ; no rest
-				 (not (member p1 (butlast ps)))
+				 (not (member p1 (butlast ps) :test #'equal))
 				 ;; (progn (format t "no-repetition -- p: ~A, ps: ~A, result: ~A ~%"
-				 ;; 	       p1 (butlast ps) (not (member p1 (butlast ps))))
-				 ;;        (not (member p1 (butlast ps))))
+				 ;; 	       p1 (butlast ps) (not (member p1 (butlast ps) :test #'equal)))
+				 ;;        (not (member p1 (butlast ps) :test #'equal)))
 				 T)))
 		       voices
 		       :all-pitches
