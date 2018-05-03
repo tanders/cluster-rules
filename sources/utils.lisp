@@ -17,6 +17,8 @@
 ;; (setf ccl::*pwgl-print-max-chars* 1000)
 
 
+
+
 (defun cluster-engine (no-of-variables rules metric-domain list-of-domains
                       &key (rnd? T) (debug? nil))
   "Slight variant of function cluster-engine::clusterengine where the order of variables is rearranged for shorter function calls. See the orig definition for further documentation."
@@ -27,6 +29,15 @@
                                  metric-domain
                                  list-of-domains))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; Harmony and pitches 
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;; scale->pitchdomain
 
 (defun scale->pitchdomain (scale-pitches &key (min 60) (max 72))
@@ -36,6 +47,56 @@
        when (member (mod pitch 12) pcs)
        collect (list pitch))))
 
+
+;;;
+;;; Aux harmony defs
+;;;
+
+(defmethod pitch->pc ((pitch integer))
+  "Returns the pitch class (int) in 12-TET of the given MIDI note number (int)."
+  (mod pitch 12))
+
+(defmethod pitch->pc ((pitches list))
+  "Returns the pitch classes (list of ints) in 12-TET of the list of given MIDI note number (list of int)."
+  (mapcar #'pitch->pc pitches))
+
+(defun pc-member (pitch1 pitches2)
+  "Returns T if the PC of pitch1 is a member in the PC set of pitches2."
+  (member (mod pitch1 12) (pitch->pc pitches2)))
+
+; (pc-member 60 '(48 57))
+
+; (defun PC-member-save (pitch1 pitches2)
+;  "Returns T if the PC of pitch1 is a member in the PC set of pitches2. Rests (i.e. pitches that are nil) are taken care of (e.g., if pitch1 is nil then PC-member returns T."
+;  (if pitch1
+;      (member (mod pitch1 12) 
+;              (mapcar #'(lambda (p) (mod p 12))
+;                      (remove NIL pitches2)))
+;    T))
+
+(defun transpose-pc (pc pc-interval)
+  "Transposes the pitch class pc (int) by the pitch class interval pc-interval (int) such that the result is still a pitch class (int)."
+  (mod (+ pc pc-interval) 12))
+
+; (transpose-pc 7 7)
+
+
+(defun pc-interval (pc1 pc2)
+  "Returns the pitch class interval (int between 0 and 11) between the two pitch classes pc1 and pc2 (both ints)."
+  (mod (- pc2 pc1) 12))
+
+; (pc-interval 7 9)
+; (pc-interval 7 2)
+; (pc-interval 2 7)
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; Files
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; file-in-this-directory
 
@@ -219,9 +280,12 @@ Optional arguments:
 |#
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; List processing
 ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun map-pairwise (fn xs)
   "Collects the result of applying the binary function gn on all pairwise combinations of elements in xs, i.e.,11 ((fn xs1 xs2) .. (fn xs1 xsN) (fn xs2 xs3) .. (fn xsN-1 xsN))."
