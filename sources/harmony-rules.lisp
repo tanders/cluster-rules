@@ -637,4 +637,65 @@ chord-voice (default 1): the voice representing the underlying chord."
    (only-chord-PCs voices :all :include-gracenotes rule-type weight chord-voice)))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; Rules on underlying harmony (the actual chords)
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Port from Strasheela
+;; - VoiceLeadingDistance VoiceLeadingDistance_Percent
+;; - Schoenberg rules
+
+(defun voice-leading-distance (chord1 chord2)
+  "Returns the voice leading distance (an integer, measured in semitones) between two given chords, each a lists of MIDI note numbers. The voice leading distance is the minimal sum of intervals between chord1 and chord2. The voice-leading distance is directionless in the sense that regardless whether a voice moves up or down, always the smaller interval is taken into account. The lower the voice leading distance, the more 'smooth' is the harmonic progression (a chord repetition is quasi most smooth).
+
+  Currently, only 12-TET is supported.
+
+  Example: voice leading distance between C major and Ab major triads
+  (voice-leading-distance '(60 64 67) '(56 60 63))
+  => 2
+  C->C=0 + E->Eb=1 + G->Ab=1, so the sum is 2
+
+  Note: Only the minimal intervals from all chord2 pitch classes to chord1 pitch classes are taking into account. There may be pitch classes in chord1 which are ignored as all pitch classes of chord2 may be closer to some other pitch classes of chord1.
+
+  Example: C-maj -> F#-maj = 4
+  (voice-leading-distance '(60 64 67) '(66 70 73))
+  => 4
+  C->C#=1, C->A#=2, G->F#=1 -- the E of C-maj is ignored in the computation  
+"
+  (let ((chord1-pcs (pitch->pc chord1))
+	(chord2-pcs (pitch->pc chord2)))
+    (apply #'+
+	   (mapcar #'(lambda (pc2)
+		       (apply #'min
+			      (mapcar #'(lambda (pc1)
+					  (let* ((pc-int (pc-interval pc1 pc2))
+						 (pc-int-complement (- 12 pc-int)))
+					    (min pc-int pc-int-complement)))
+				      chord1-pcs)))
+		   chord2-pcs))))
+
+; (voice-leading-distance '(60 64 67) '(56 60 63))
+; (voice-leading-distance '(56 60 63) '(60 64 67))
+; => 2 for both
+
+; (voice-leading-distance '(60 64 67) '(60 64 67))
+; => 0
+
+(defun limit-voice-leading-distance (max-distance &key
+						    (chord-voice 1)
+						    (rule-type :true/false) ; options: :true/false :heur-switch
+						    (weight 1))
+  "Constrains the voice leading distance of consecutive chords in chord-voice to be at most max-distance. See the documentation of `voice-leading-distance' for details on what the voice leading distance is."
+  (R-pitches-one-voice #'(lambda (chord1 chord2)
+			   (<= (voice-leading-distance chord1 chord2)
+			       max-distance))
+		       chord-voice
+		       :pitches
+		       rule-type
+		       weight))
+; (limit-voice-leading-distance 3)
+
+
 

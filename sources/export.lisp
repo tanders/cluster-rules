@@ -35,6 +35,7 @@
 	  chord-PC-at-1st-tone-HACK stepwise-non-chord-tone-resolution chord-tone-follows-non-chord-tone
 	  unequal-sim-PCs number-of-sim-PCs set-harmonic-intervals min/max-harmonic-interval
 	  tintinnabuli-M-voice tintinnabuli-T-voice
+	  limit-voice-leading-distance
 	  ;; ;;;; Cluster Engine
 	  ;; cluster-engine::r-chords
 	  ;; counterpoint
