@@ -389,10 +389,11 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 	 (len (length voices))
 	 (rev (reverse voices)))
     (mapcar #'(lambda (i) 
-		(unequal-sim-PCs-aux (subseq rev i len)
-				     input-mode
-				     gracenotes?
-				     rule-type weight))
+		(unequal-sim-PCs-aux :voices (subseq rev i len)
+				     :input-mode input-mode
+				     :gracenotes? gracenotes?
+				     :rule-type rule-type
+				     :weight weight))
 	    (arithm-ser 0 1 (- len 2)))))
 
 
@@ -466,7 +467,7 @@ Args:
 
 Other arguments are inherited from r-pitch-pitch.
 "
-  (flat
+  (tu:flat
    (flet ((rule (pitches)
 	    (if (and (first pitches) (second pitches)) ; no rests 
 		(let ((interval (case pcs?
@@ -534,7 +535,7 @@ Args:
 
 Other arguments are inherited from r-pitch-pitch.
 "
-  (flat
+  (tu:flat
    (flet ((rule (pitches)
 	    ;; (format T "min/max-harmonic-interval rule: pitches: ~A" pitches)
 	    (let ((pitch1 (first pitches))
