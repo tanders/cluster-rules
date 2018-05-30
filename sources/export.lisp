@@ -35,7 +35,10 @@
 	  chord-PC-at-1st-tone-HACK stepwise-non-chord-tone-resolution chord-tone-follows-non-chord-tone
 	  unequal-sim-PCs number-of-sim-PCs set-harmonic-intervals min/max-harmonic-interval
 	  tintinnabuli-M-voice tintinnabuli-T-voice
+	  set-chord-at-positions set-root-at-positions
 	  limit-voice-leading-distance
+	  schoenberg-progression-rule ascending-progression resolve-descending-progression
+	  ;; progression-strength constant-progression? superstrong-progression? descending-progression? ascending-progression*? ascending-progression? common-pcs?
 	  ;; ;;;; Cluster Engine
 	  ;; cluster-engine::r-chords
 	  ;; counterpoint
