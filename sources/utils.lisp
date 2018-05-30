@@ -301,3 +301,13 @@ Optional arguments:
   (apply #'append (apply #'mapcar func inlists)))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; 
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun boolean->int (b)
+  "Converts T into 1 and nil into 0: useful for porting some Strasheela constraints"
+  (if B 1 0))
