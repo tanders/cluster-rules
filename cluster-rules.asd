@@ -35,6 +35,8 @@
   :depends-on ("cluster-engine" 
                "ta-utilities" ;; e.g., tu:dx->x, tu:mat-trans, but so far only in #+opusmodus code (melody-rules.lisp)
                ;; #+opusmodus "tot" ; Torsten's Opusmodus Tools -- would result in circular dependencies
+	       ;;; NOTE: This library (OpenMusic without the visual programming interface) is still unfinished and not shared. Only a few functions depend on it. I could try to make this some conditional library to load, but for now I better leave it simply out.
+	       ;; "pw"
 	       )
   )
 
