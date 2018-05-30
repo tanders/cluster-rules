@@ -41,12 +41,17 @@
 ;;;
 
 (defun in-harmony? (pitches)
-  "The PC of (first pitches) is in the PCs of (second pitches)."
-  (if (and (first pitches) (second pitches)) ;; no rests
-      (member (mod (first pitches) 12)
-	      (mapcar #'(lambda (p) (mod p 12))
-		      (second pitches)))
-    T))
+  "The PC of (first pitches) is in the PCs of (second pitches). (first pitches) can be a chord."
+  (let ((voice-pitch (first pitches))
+	(scale-pitches (second pitches)))
+    (if (and voice-pitch (second pitches))  ; no rests
+	(let ((scale-pcs (mapcar #'(lambda (p) (mod p 12))
+				 scale-pitches)))
+	  (every #'(lambda (p)
+		     (member (mod p 12) scale-pcs))
+		 ;; handle both individual pitches and chords
+		 (tu:ensure-list voice-pitch)))
+	T)))
 
 ;;; only-scale-PCs 
 
