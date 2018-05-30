@@ -564,9 +564,81 @@ Optional arguments are inherited from r-pitches-one-voice."
 
 ;; min/max-melodic-interval
 
-#|
 ;; TODO: 
 ;; - !! Efficiency: use array/vector instead of list 
+(defun min/max-interval (&key
+			   (voices 0)
+			   (min-interval NIL)
+			   (max-interval NIL)
+			   (n 0)
+			   (rule-type :true/false) ; options: :true/false :heur-switch
+			   (weight 1))
+  "Limit the minimum/maximum melodic interval for the given voice.
+
+Args: 
+voices (int or list of ints): the number of the voice(s) to constrain.
+
+key-args:
+min-interval (number, fenv or NIL): minimum interval in semitones. Ignored if NIL. Implicitly disallows repetition if >= 1. If a fenv, then the fenv specifies how the min interval changes over n notes (i.e., fenv specifies n-1 intervals).
+max-interval (number, fenv or NIL): maximum interval in semitones. Ignored if NIL. If a fenv, then the fenv specifies how the max interval changes over n notes.
+n (int): The first n notes are affected. If 0, then n is disregarded. NOTE: if any fenv is set then make sure n is greater than 0.
+
+Args rule-type and weight inherited from r-pitches-one-voice."
+  (if (some #'fenv:fenv? (list min-interval max-interval))	   
+      ;; one or both intervals are fenv
+      (flet ((make-intervals (min/max-interval)
+	       "Transforms fenv (or scalar) interval into list/array of interval numbers."	    
+	       (cond ((fenv:fenv? min/max-interval)
+		      (if (> n 0)  
+			  (fenv:fenv->list min/max-interval (1- n))
+			  (progn (warn "Cannot sample fenv with n set to 0")
+				 NIL)))
+		     ((numberp min/max-interval) (make-list n :initial-element min/max-interval))
+		     ((null min/max-interval) min/max-interval))))
+	(let ((min-intervals (make-intervals min-interval))
+	      (max-intervals (make-intervals max-interval)))
+	  (r-pitches-one-voice #'(lambda (pitches)					  
+				   (let ((l (length pitches)))
+				     (if (and (>= l 2) (<= l n))
+					 (let* ((last-pitches (last pitches 2))
+						(pitch1 (second last-pitches))
+						(pitch2 (first last-pitches)))
+					   (if (and pitch1 pitch2) ; no rests
+					       (let ((interval (abs (- pitch1 pitch2))))
+						 (and (if min-intervals ;; TODO: efficiency: this test only required once
+							  (<= (nth (- l 2) min-intervals) interval)
+							  T)
+						      (if max-intervals ;; TODO: efficiency: this test only required once
+							  (progn 
+							    ;; (format t "min/max-interval -- interval: ~A, max-interval: ~A, result: ~A ~%"
+							    ;; 	   interval 
+							    ;; 	   (nth (- l 2) max-intervals)
+							    ;; 	   (<= interval (nth (- l 2) max-intervals)))
+							    (<= interval (nth (- l 2) max-intervals)))
+							  T)))
+					       T))
+					 T)))
+			       voices
+			       :all-pitches
+			       rule-type
+			       weight)))
+      ;; both intervals are scalars
+      (r-pitches-one-voice #'(lambda (pitch1 pitch2)
+			       (if (and pitch1 pitch2) ; no rests
+				   (let ((interval (abs (- pitch1 pitch2))))
+				     (and (if min-interval 
+					      (<= min-interval interval)
+					      T)
+					  (if max-interval 
+					      (<= interval max-interval)
+					      T)))
+				   T))
+			   voices
+			   :pitches
+			   rule-type
+			   weight)))
+
+#| ;; old version with BPFs instead of fenvs
 (defun min/max-interval (&key
 			   (voices 0)
 			   (min-interval NIL)
@@ -830,11 +902,11 @@ Other arguments are inherited from R-pitches-one-voice."
 Args:
 voices (int or list of ints): The voice(s) to which the rule is applied. 
 
-rel-factor (relation factor): the interval is about the duration times rel-factor.
+rel-factor (relation factor): the size of the melodic interval is approximately the duration times rel-factor.
 
 acc-factor (accuracy factor): factor how much the interval can deviate from that relation above and below. 
 
-Examples: If rel-factor is 1 and acc-factor is also one, then the duration of a note would need to be the same as the interval starting at it (e.g., duration = 2 and interval is 2). If rel-factor is 32 and acc-factor is 2 (the defaults) the the interval can be any value between duration*32/2 and duration*32*2.  
+Examples: If rel-factor is 1 and acc-factor is also one, then the duration of a note would need to be the same as the interval starting at it (e.g., duration = 2 and interval is 2). If rel-factor is 32 and acc-factor is 2 (the defaults) then the interval can be any value between duration*32/2 and duration*32*2.  
 
 Optional arguments are inherited from r-rhythm-pitch-one-voice."
   (r-rhythm-pitch-one-voice #'(lambda (dur-pitch1 dur-pitch2)
