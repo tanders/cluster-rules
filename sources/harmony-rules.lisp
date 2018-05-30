@@ -744,11 +744,17 @@ If pc? is set to T, then this constraint compares pitch classes instead of actua
 
 (defun limit-voice-leading-distance (max-distance &key
 						    (chord-voice 1)
+						    (n nil)
 						    (rule-type :true/false) ; options: :true/false :heur-switch
 						    (weight 1))
-  "Constrains the voice leading distance of consecutive chords in chord-voice to be at most max-distance. See the documentation of `voice-leading-distance' for details on what the voice leading distance is."
+  "Constrains the voice leading distance of consecutive chords in chord-voice to be at most max-distance. See the documentation of `voice-leading-distance' for details on what the voice leading distance is.
+
+  Args: 
+  - chord-voice (int): the voice representing the underlying chord.
+  - n (int): only the first `n' pitch classes of chords are taken into account, if this argument is set.
+"
   (R-pitches-one-voice #'(lambda (chord1 chord2)
-			   (<= (voice-leading-distance chord1 chord2)
+			   (<= (voice-leading-distance chord1 chord2 n)
 			       max-distance))
 		       chord-voice
 		       :pitches
