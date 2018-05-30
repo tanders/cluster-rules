@@ -716,9 +716,15 @@ If pc? is set to T, then this constraint compares pitch classes instead of actua
   (voice-leading-distance '(60 64 67) '(66 70 73))
   => 4
   C->C#=1, C->A#=2, G->F#=1 -- the E of C-maj is ignored in the computation  
+
+  If `n' is set, only the first `n' pitch classes of the chords are taken into account.
 "
-  (let ((chord1-pcs (pitch->pc chord1))
-	(chord2-pcs (pitch->pc chord2)))
+  (let ((chord1-pcs (if n
+			(first-n (remove-duplicates (pitch->pc chord1) :from-end T) n)
+			(pitch->pc chord1)))
+	(chord2-pcs (if n
+			(first-n (remove-duplicates (pitch->pc chord2) :from-end T) n)
+			(pitch->pc chord2))))
     (apply #'+
 	   (mapcar #'(lambda (pc2)
 		       (apply #'min
