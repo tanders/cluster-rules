@@ -764,3 +764,291 @@ If pc? is set to T, then this constraint compares pitch classes instead of actua
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; My generalisation of Schoenberg's chord progression rules
+;;;
+
+#|
+
+Music representation convention: 
+
+ - A chord/spectrum/scale is represented as a list of pitches or pitch classes
+ - Pitches are represented as MIDI note numbers, pitch classes as an integers between 0 and 11 (currently limited to 12-TET)
+ - The root of a chord/spectrum/scale is its first pitch (class)
+
+|#
+
+(defparameter *pitches-per-octave* 12
+  "Number of equidistant pitches per octave, specifies an equal temperament. Currently, only 12-TET is supported.")
+
+(defun common-pcs? (chord1 chord2 &optional n)
+  "Returns true if `chord1' and `chord2' have common pitch classes.
+
+  If `n' is set, only the first `n' pitch classes of the chords are taken into acount."
+  (let ((chord1-firsts (if n
+			   (first-n (remove-duplicates (pitch->pc chord1) :from-end T) n)
+			   chord1))
+	(chord2-firsts (if n
+			   (first-n (remove-duplicates (pitch->pc chord2) :from-end T) n)
+			   chord2)))
+    (intersection (pitch->pc chord1-firsts) (pitch->pc chord2-firsts))))
+
+; (common-pcs? '(60 64 67) '(59 62 67))
+
+(defun common-pcs-size (chord1 chord2 &optional n)
+  "Returns the number of common pitch classes between`chord1' and `chord2'.
+
+  If `n' is set, only the first `n' pitch classes of the chords are taken into acount."
+  (length (common-pcs? chord1 chord2 n)))
+
+; (common-pcs-size '(60 64 67) '(59 62 67)) ; 1
+; (common-pcs-size '(60 64 67) '(9 0 4)) ; 2
+; (common-pcs-size '(60 64 67) '(62 66 69)) ; 0
+
+
+(defun get-root-pc (chord)
+  (pitch->pc (first chord)))
+
+;;; TODO: If n is set, shall I test whether root of chord2 is not member of first n PCs, or of any PCs of chord1, or should this be user-controllable? The second option is more restrictive, and for large chords this option can be too restrictive.
+(defun ascending-progression? (chord1 chord2 &optional n)
+  "Returns true if the progression from `chord1' to `chord2' is ascending (or strong): `chord1' and `chord2' have common pitch classes, but the root of `chord2' does not occur in the set of pitch classes of `chord1'.
+
+  Such a definition is less restrictive that Schoenberg's original guidelines (e.g., a root progression by a step upwards into a 7th chord also counts as an ascending progression here). Therefore, the rule supports the additonal argument `n': only the first n pitches of `chord1' and `chord2' are taken into account, if this argument is set.
+
+  Example:
+
+  By default, a root progression by a step upwards into a 7th chord also counts as an ascending progression.
+  ;; (ascending-progression? '(60 64 67) '(62 66 69 72)) ; T
+
+  That is not the case, if only the first 3 district pitch classes are taken into account, which can be set with `n'. Note that the order of the pitches (and thus pitch classes) matters here -- the seventh is the 4th pitch in the chord. If you do not want certain chord pitches to be taken into account, you have to make sure that these pitches occur above the threshold `n'.
+  ;; (ascending-progression? '(60 64 67) '(62 66 69 72) 3) ; nil
+"
+  (let ((chord1-firsts (if n
+			   (first-n (remove-duplicates (pitch->pc chord1) :from-end T) n)
+			   chord1))
+	(chord2-firsts (if n
+			   (first-n (remove-duplicates (pitch->pc chord2) :from-end T) n)
+			   chord2)))
+    (and
+     ;;; TODO: If n is set, shall I test whether root of chord2 is not member of first n PCs, or of any PCs of chord1, or should this be user-controllable? The second option is more restrictive.
+     ;; (not (member (get-root-pc chord2) (pitch->pc chord1)))
+     (not (member (get-root-pc chord2) (pitch->pc chord1-firsts)))
+     (common-pcs? chord1-firsts chord2-firsts))))
+
+; (ascending-progression? '(60 64 67) '(67 71 74)) ; nil
+; (ascending-progression? '(67 71 74) '(60 64 67)) ; T
+; (ascending-progression?  (pitch->pc '(77 81 83 84 87)) (pitch->pc '(79 83 85 86 89)) 3)
+
+
+;;; TODO: I might add an argument n here as well, like in ascending-progression?, but ascending-progression? with the argument n likely does not need ascending-progression*? anymore...
+(defun ascending-progression*? (chord1 chord2)
+  "More strict variant of ascending-progression?: Returns true if root of `chord2' does not occur in the set of pitch classes of `chord1', but the root of `chord1' does occur in `chord2'. 
+   Note: This definition is still less restrictive that Schoenberg's original guidelines (e.g., a root progression by a step upwards into a 7th chord also counts as an ascending progression here)."
+  (and
+   (not (member (get-root-pc chord2) (pitch->pc chord1)))
+   (member (get-root-pc chord1) (pitch->pc chord2))))
+
+; (ascending-progression*? '(60 64 67) '(67 71 74)) ; nil
+; (ascending-progression*? '(67 71 74) '(60 64 67)) ; T
+
+(defun descending-progression? (chord1 chord2 &optional n)
+  "Returns true if the progression from `chord1' to `chord2' is descending (or weak): a non-root pitchclass of `chord1' is root in `chord2'.
+
+  If `n' is set, only the first `n' pitches of `chord1' are taken into acount when testing membership of the root of `chord2' in `chord1'."
+  (let ((chord1-firsts (if n
+			   (first-n (remove-duplicates (pitch->pc chord1) :from-end T) n)
+			   chord1)))
+    (and
+     (member (get-root-pc chord2) (pitch->pc chord1-firsts))
+     (/= (get-root-pc chord1) (get-root-pc chord2)))))
+
+; (descending-progression? '(60 64 67) '(67 71 74)) ; T
+; (descending-progression? '(67 71 74) '(60 64 67)) ; nil
+
+(defun superstrong-progression? (chord1 chord2 &optional n)
+  "Returns true if the progression from `chord1' to `chord2' is superstrong in a Schoenbergian sense (cf. Harmonielehre): `chord1' and `chord2' have no common pitch classes.
+
+  If `n' is set, only the first `n' pitch classes of the chords are taken into acount."
+  (not (common-pcs? chord1 chord2 n)))
+
+; (superstrong-progression? '(60 64 67) '(67 71 74)) ; nil
+; (superstrong-progression? '(60 64 67) '(62 66 69)) ; T
+
+(defun constant-progression? (chord1 chord2)
+  "Returns true if two chords/scales `chord1' and `chord2' have a common root but their pitchclasses might differ. This case is ommited by Schoenberg discussing root progressions."
+  (= (get-root-pc chord1) (get-root-pc chord2)))
+
+; (constant-progression? '(60 64 67) '(67 71 74)) ; nil
+; (constant-progression? '(60 64 67) '(60 64 67)) ; T
+
+
+(defun progression-strength (chord1 chord2)
+  "Expects two chords/scales `chord1' and `chord2', and returns and integer n expressing the 'strength' of the harmonic progression.
+
+   More specifically, n can be used to distinguish between the following cases.
+   - n = 0: `chord1' and `chord2' share the same root 
+   - 0 < n < `*pitches-per-octave*': descending progression.
+   - `*pitches-per-octave*' < n < `*pitches-per-octave*' * 2: ascending progression.
+   - n = `*pitches-per-octave*' * 2: superstrong progression.
+
+   Within the two categories descending and ascending progression, n is rated depending on the number of common pitch classes between `chord1' and `chord2' and the number of pitch classes of `chord2'. The progression strength is higher if a progression shares less pitch classes, and if `chord2' has less pitch classes. 
+
+  Examples (`*pitches-per-octave*' is always 12):
+
+  Two equal chords (constant-progression)
+  (progression-strength '(60 64 67) '(60 64 67))
+  => 0
+
+  A descending progression where the triads `chord1' and `chord2' share two pitch classes. 
+  (progression-strength '(0 4 7) '(4 7 11))
+  => 4
+
+  A descending progression where `chord2' is a tetrad, and `chord1' and `chord2' share two pitch classes.
+  (progression-strength '(0 4 7) '(4 7 11 2))
+  => 6
+
+  A descending progression that shares a single pitch class, and `chord2' is a triad. 
+  (progression-strength '(60 64 67) '(67 71 74))
+  => 8
+
+  A descending progression where `chord2' is a tetrad, and `chord1' and `chord2' share a single pitch class.
+  (progression-strength '(60 64 67) '(67 71 74 77))
+   => 9
+
+  An ascending progression where `chord2' is a triad and `chord1' and `chord2' share two pitch classes.
+  (progression-strength '(0 4 7) '(9 0 4))
+  => 16
+
+  etc.
+"
+  (let* ((descending? (descending-progression? chord1 chord2))
+	 (ascending? (ascending-progression? chord1 chord2))
+	 (superstrong? (superstrong-progression? chord1 chord2))
+	 (chord2-size (length chord2))
+	 (common-pcs-strength (- *pitches-per-octave*				 
+				 (* (common-pcs-size chord1 chord2)
+				    (/ *pitches-per-octave* chord2-size)))))
+    (+ (* (boolean->int descending?) common-pcs-strength)
+       (+ (* *pitches-per-octave* (boolean->int ascending?))
+	  (* (boolean->int ascending?) common-pcs-strength)
+       (* (boolean->int superstrong?) *pitches-per-octave* 2)))))
+
+
+(defun resolve-descending-progression (&key
+					 (allow-repetition nil)
+					 (allow-interchange-progression nil)
+					 (chord-voice 1) 
+					 (n nil)
+					 (rule-type :true/false) ; options: :true/false :heur-switch
+					 (weight 1))
+  "Rule that constrains a chord progression according to Schoenberg's recommendation. For any three successive chords/scales, if the first two chords form a descending progression, then the progression from the first to the third chord forms a strong progression (so the middle chord is quasi a 'passing chord'). Also, the last chord/scale pair forms always a strong progression.
+  
+  Args: 
+  - allow-interchange-progression (Boolean): If true, then mere interchange progressions (e.g., I V I), are permitted as well. In any case, no two descending progressions must follow each other.
+  - allow-repetition (Boolean): If true, two consecutive chords can have the same root. 
+  - chord-voice (int): the voice representing the underlying chord.
+  - n (int): only the first n pitch classes of chords are taken into account, if this argument is set.
+
+  Music representation convention: 
+  - A chord/spectrum/scale is represented as a list of pitches or pitch classes
+  - Pitches are represented as MIDI note numbers, pitch classes as an integers between 0 and 11 (currently limited to 12-TET)
+  - The root of a chord/spectrum/scale is its first pitch (class)
+"
+  (append
+   (list 
+    (if allow-interchange-progression
+	(R-pitches-one-voice
+	 #'(lambda (c1 c2 c3)
+	     (if (descending-progression? c1 c2 n)
+		 (or (ascending-progression? c1 c3 n)
+		     (constant-progression? c1 c3))))
+	 chord-voice
+	 :pitches
+	 rule-type
+	 weight)
+	(R-pitches-one-voice
+	 #'(lambda (c1 c2 c3)
+	     (if (descending-progression? c1 c2 n)
+		 (ascending-progression? c1 c3 n)))
+	 chord-voice
+	 :pitches
+	 rule-type
+	 weight)))
+   (when (not allow-repetition)
+     (list 
+      (R-pitches-one-voice
+       #'(lambda (c1 c2)
+	   (not (constant-progression? c1 c2)))
+       chord-voice
+       :pitches
+       rule-type
+       weight)))))
+
+
+(defun ascending-progression (&key
+				(chord-voice 1)
+				(n nil)
+				(rule-type :heur-switch) ; options: :true/false :heur-switch
+				(weight 1))
+  "Rule that constrains consecutive chords to an ascending progression, where  (see documentation of `ascending-progression?'). By default, this is an heuristic rule.
+
+  Args: 
+  - chord-voice (int): the voice representing the underlying chord.
+  - n (int): only the first n pitch classes of chords are taken into account, if this argument is set.
+"
+  (R-pitches-one-voice 
+   #'(lambda (c1 c2)
+       (ascending-progression? c1 c2 n))
+   chord-voice
+   :pitches
+   rule-type
+   weight))
+
+; (ascending-progression)
+
+
+(defun schoenberg-progression-rule (&key
+				      (progression '(:resolve-descending-progression)) ; options: :ascending, (:resolve-descending-progression &rest args), :harmonic-band, :common-pcs
+				      (chord-voice 1) 
+				      (n nil)
+				      (rule-type :heur-switch) ; options: :true/false :heur-switch
+				      (weight 1)) 
+  "[Convenience constraint] Constraints the chord root progression of consecutive chords, but different values of `progression' set different variants of Schoenbergs rule set. Supported values for `progression' are as follows.
+
+   - :ascending - only ascending chord progressions are permitted
+   - (:resolve-descending-progression &rest args) - descending progressions are resolved (arguments to rule resolve-descending-progression can be given as further values in this list)
+   - :harmonic-band - consecutive chords must share common pitch classes
+   - :common-pcs - consecutive chords must share common pitch classes
+
+  Args: 
+  - chord-voice (int): the voice representing the underlying chord.
+  - n (int): only the first n pitch classes of chords are taken into account, if this argument is set.
+
+  Music representation convention: 
+  - A chord/spectrum/scale is represented as a list of pitches or pitch classes
+  - Pitches are represented as MIDI note numbers, pitch classes as an integers between 0 and 11 (currently limited to 12-TET)
+  - The root of a chord/spectrum/scale is its first pitch (class)
+"
+  ;; - :ascending* - only slightly more strict variation of ascending chord progressions are permitted
+  (if (keywordp progression)
+      (case progression
+	(:ascending (ascending-progression :chord-voice chord-voice :n n :rule-type rule-type :weight weight))
+	;; (:ascending* (R-pitches-one-voice
+	;; 	      #'(lambda (c1 c2)
+	;; 		  (ascending-progression*? c1 c2))
+	;; 	      chord-voice
+	;; 	      :pitches
+	;; 	      rule-type
+	;; 	      weight))
+	((:harmonic-band :common-pcs) (R-pitches-one-voice
+				       #'(lambda (c1 c2)
+					   (common-pcs? c1 c2))
+				       chord-voice
+				       :pitches
+				       rule-type
+				       weight)))
+      ;; rule-type is (resolve-descending-progression &rest args), but first arg is 'resolve-descending-progression
+      (apply #'resolve-descending-progression (append (rest rule-type) (list :n n)))))
+
+
