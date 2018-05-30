@@ -649,11 +649,58 @@ chord-voice (default 1): the voice representing the underlying chord."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun set-chord-at-positions (positions chord
+			       &key
+				 (chord-voice 1) 
+				 (rule-type :true/false) ; options: :true/false :heur-switch
+				 (weight 1))
+  "Restricts the chords at the given positions (0-based) in the chord-voice to the given chord."
+  (loop for pos in positions
+     append (R-index-pitches-one-voice
+	     #'(lambda (ps)
+		 (if ps ; no rest
+		     (equal ps chord)
+		     T))
+	     (list pos)
+	     chord-voice
+	     :position-for-pitches
+	     rule-type
+	     weight)))
+
+
+(defun set-root-at-positions (positions root
+			      &key
+				(pc? T)
+				(chord-voice 1) 
+				(rule-type :true/false) ; options: :true/false :heur-switch
+				(weight 1))
+  "Restricts the chord roots (the lowest chord pitches) at the given positions (0-based) in the chord-voice to the given root.
+
+If pc? is set to T, then this constraint compares pitch classes instead of actual pitches."
+  (let ((root-pc (mod root 12)))
+    (loop for pos in positions
+       append (R-index-pitches-one-voice
+	       #'(lambda (ps)
+		   (if ps ; no rest
+		       (if pc? ;;; TODO: do this test only once at the time this rule is created
+			   (= (mod (first ps) 12) root-pc)
+			   (= (first ps) root))
+		       T))
+	       (list pos)
+	       chord-voice
+	       :position-for-pitches
+	       rule-type
+	       weight))))
+
+
+
 ;; Port from Strasheela
 ;; - VoiceLeadingDistance VoiceLeadingDistance_Percent
 ;; - Schoenberg rules
 
-(defun voice-leading-distance (chord1 chord2)
+;;; TODO: Revised version (possibly switched on by arg): the current version always takes the shortest path between pitch classes, and does not enforce that each PC of each chord is involved in this calculation, which leads to a lower voice leading distance overall. A better algorithm would enforce that all PCs of each chord is involved, but that might need some optimisation technique, which needs a bit of extra work to implement. Hm -- but is that still min. voice leading distance?
+;; I could try to find a better voice-leading algorithm in the literature, or perhaps some general distance algorithm finding the shortest path between multiple 1D points in space? 
+(defun voice-leading-distance (chord1 chord2 &optional n)
   "Returns the voice leading distance (an integer, measured in semitones) between two given chords, each a lists of MIDI note numbers. The voice leading distance is the minimal sum of intervals between chord1 and chord2. The voice-leading distance is directionless in the sense that regardless whether a voice moves up or down, always the smaller interval is taken into account. The lower the voice leading distance, the more 'smooth' is the harmonic progression (a chord repetition is quasi most smooth).
 
   Currently, only 12-TET is supported.
