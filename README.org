@@ -29,7 +29,7 @@ $ git clone https://github.com/tanders/ta-utilities.git
 
 ** Updating your software
 
-   If there are [[https://github.com/tanders/cluster-rules/commits/master][changes]], you can update your software later at the terminal in the following way.
+   If there are [[https://github.com/tanders/cluster-rules/commits/master][changes]], you can update your software later at the terminal in the following way. Make sure you update the dependencies likewise.
 
 #+begin_src bash :tangle yes
 $ cd ~/common-lisp/cluster-rules
