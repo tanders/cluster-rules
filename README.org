@@ -18,7 +18,7 @@ $ git clone https://github.com/tanders/cluster-rules.git
 
   You will be asked for your GitHub username and password.
   
-  Fenv depends on two other libraries, which you can install in the same way.
+  This library depends on two other libraries, which you can install in the same way.
 
 #+begin_src bash :tangle yes
 $ cd ~/common-lisp
