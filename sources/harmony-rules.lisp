@@ -908,13 +908,14 @@ Music representation convention:
 
 
 (defun get-root-pc (chord)
+  "Return the pitch class of the first pitch in chord."
   (pitch->pc (first chord)))
 
 ;;; TODO: If n is set, shall I test whether root of chord2 is not member of first n PCs, or of any PCs of chord1, or should this be user-controllable? The second option is more restrictive, and for large chords this option can be too restrictive.
 (defun ascending-progression? (chord1 chord2 &optional n)
   "Returns true if the progression from `chord1' to `chord2' is ascending (or strong): `chord1' and `chord2' have common pitch classes, but the root of `chord2' does not occur in the set of pitch classes of `chord1'.
 
-  Such a definition is less restrictive that Schoenberg's original guidelines (e.g., a root progression by a step upwards into a 7th chord also counts as an ascending progression here). Therefore, the rule supports the additonal argument `n': only the first n pitches of `chord1' and `chord2' are taken into account, if this argument is set.
+  Such a definition is less restrictive than Schoenberg's original guidelines (e.g., a root progression by a step upwards into a 7th chord also counts as an ascending progression here). Therefore, the rule supports the additonal argument `n': only the first n pitches of `chord1' and `chord2' are taken into account, if this argument is set.
 
   Example:
 
