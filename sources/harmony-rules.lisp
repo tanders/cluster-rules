@@ -348,8 +348,60 @@ Other arguments are inherited from r-pitch-pitch."
 
 
 
+(defun unequal-sim-pitches-aux 
+    (&key
+       (voices 0)
+       (timepoints '(0))
+       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
+       (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+       (rule-type :true/false) ; options: :true/false :heur-switch
+       (weight 1))
+  "[Quasi aux def] The pitches of the 1st given voice differ from the sim pitches of the remaining voices."
+  (r-pitch-pitch #'(lambda (pitches)
+		     (if (first pitches) ; no rest
+			 (not (member (first pitches) 
+				      (rest pitches)))
+			 T))
+		 voices
+		 timepoints
+		 input-mode
+		 gracenotes?
+		 :pitch
+		 rule-type weight))
+
+;;; TODO: unfinished
+(defun unequal-sim-pitches
+    (&key
+       (voices 0)
+       (timepoints '(0))
+       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
+       (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+       (rule-type :true/false) ; options: :true/false :heur-switch
+       (weight 1))
+  "Simultaneous pitches in all given voices differ.
+
+Arguments are inherited from r-pitch-pitch.
+
+TODO: Revise this definition -- can the interplay with unequal-sim-pitches-aux be simplified?
+"
+  (let* ((voices (sort voices #'<))
+	 (len (length voices))
+	 (rev (reverse voices)))
+    (mapcar #'(lambda (i) 
+		(unequal-sim-pitches-aux :voices (subseq rev i len)
+					 :timepoints timepoints
+					 :input-mode input-mode
+					 :gracenotes? gracenotes?
+					 :rule-type rule-type
+					 :weight weight))
+	    ;; Package/library pw not loaded -- no idea how this function came up here..
+	    ;; (pw:arithm-ser 0 1 (- len 2))
+	    (tu:arithmeric-series 1 0 (- len 2))
+	    )))
+
 ;;; unequal-sim-PCs
 
+#|
 (defun unequal-sim-PCs-aux 
     (&key
        (voices 0)
@@ -371,7 +423,7 @@ Other arguments are inherited from r-pitch-pitch."
 		 :pitch
 		 rule-type weight))
 
-
+;;; TODO: unfinished
 (defun unequal-sim-PCs
     (&key
        (voices 0)
@@ -394,7 +446,12 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 				     :gracenotes? gracenotes?
 				     :rule-type rule-type
 				     :weight weight))
-	    (arithm-ser 0 1 (- len 2)))))
+	    ;;; TODO: unfinished
+	    ;; Package/library pw not loaded -- no idea how this function came up here..
+	    (pw:arithm-ser 0 1 (- len 2))
+	    ; (tu:arithmeric-series 1 0 (- len 2))
+	    )))
+|#
 
 
 ;; TODO:
