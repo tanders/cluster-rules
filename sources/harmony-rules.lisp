@@ -502,6 +502,49 @@ Other arguments are inherited from r-pitch-pitch."
 		 rule-type weight))
 
 
+;;; TODO: code repetition (see number-of-sim-PCs) -- abstract away in aux def
+(defun number-of-sim-pitches (&key
+			    (pitch-number 2)
+			    (condition :min) ; options: :min, :equal, :max
+			    (rests-mode :reduce-no) ; options: :reduce-no, :ignore
+			    (voices '(0 1))
+			    (timepoints '(0))
+			    (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
+			    (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+			    (rule-type :true/false) ; options: :true/false :heur-switch
+			    (weight 1))
+  "Controls the number of simultaneous pitches. Useful, for example, to require that all pitches of chord layer differ.
+
+Args: 
+  pitch-number (int): the number of the simultaneous pitches. The meaning of this setting depends on the argument condition.
+  condition: Whether the number of simultaneous pitch should be at least the given pitch-number (:min), or exactly that number (:equal), or at most that number (:max). 
+  rests-mode: If set to :reduce-no, then the number of simultaneous pitches is subtracted from pitch-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments pitch-number and condition.
+  voices: the list of voices to which the rule is applied.
+  
+Other arguments are inherited from r-pitch-pitch."
+  (r-pitch-pitch #'(lambda (pitches)
+		     (let ((actual-number (case rests-mode
+					    (:reduce-no (- pitch-number
+							   (length (remove NIL pitches :test-not #'eql))))
+					    (:ignore pitch-number)))
+			   (harm (remove NIL ;; take out rests
+					 ;; NOTE: actual change compared with number-of-sim-PCs only here
+					 (remove-duplicates pitches))))
+		       (if harm				  
+			   (funcall (ecase condition
+				      (:min #'>=)
+				      (:equal #'=)
+				      (:max #'<=))
+				    (length harm) actual-number)
+			   t)))
+		 voices
+		 timepoints
+		 input-mode
+		 gracenotes?
+		 :pitch
+		 rule-type weight))
+
+
 (defun set-harmonic-intervals 
     (&key
        (voices '(0 1))
