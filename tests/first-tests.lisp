@@ -269,7 +269,7 @@
       ; melody rhythm (input rhythm as motif) 
       (,(flatten (omn :length melody))) 
       ; melody pitch domain
-      ,(mclist (apply #'gen-integer (pitch-to-midi (find-ambitus melody :type :pitch))))
+      ,(mclist (apply #'gen-integer (pitch-to-midi (get-ambitus melody :type :pitch))))
       ))
    ))
 
@@ -351,7 +351,7 @@
                       ; part's rhythm (input rhythm as motif) 
                       (,(flatten (omn :length part)))
                       ; part's pitch domain
-                      ,(mclist (apply #'gen-integer (pitch-to-midi (find-ambitus part :type :pitch)))))
+                      ,(mclist (apply #'gen-integer (pitch-to-midi (get-ambitus part :type :pitch)))))
                     )
                 parts)
       ))))
