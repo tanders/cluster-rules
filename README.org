@@ -1,9 +1,11 @@
 * cluster-rules
 
-  The library cluster-rules is an extension of the music constraint solver [[https://github.com/tanders/cluster-engine][Cluster Engine]] by [[http://sandred.com/][Örjan Sandred]]. Like Cluster Engine, this code was originally a PWGL library, but the present version is plain Common Lisp. 
+This folder contains an internal Aiva development continuation of the open-source library [[https://github.com/tanders/cluster-rules][cluster-rules]], an extension of the music constraint solver [[https://github.com/tanders/cluster-engine][Cluster Engine]] by [[http://sandred.com/][Örjan Sandred]]. Like Cluster Engine, this code was originally a PWGL library, but the present version is plain Common Lisp. 
 
 
 * Installation
+
+  *For all projects for which there exists an internal Aiva development continuation, replace the git repository paths with the Aiva repository.*
 
   The instructions below use git for the installation. Even though it is a bit more involved at first, it allows for convenient updates later, and you can even contribute to the development. 
 
