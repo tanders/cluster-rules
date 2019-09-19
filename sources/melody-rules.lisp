@@ -85,7 +85,7 @@ Strict profile rule: roughtly preserve intervals between local maxima. Argument 
      (mode :pitch) ; options: :pitch, :rhythm
      (constrain :profile) ; options: :profile, :intervals, :directions
      (gracenotes? :normal) ; options: :normal, :exclude-gracenotes
-     (interpolate-score? :no)  ; options: :yes, :no   	  
+     #+opusmodus (interpolate-score? :no)  ; options: :yes, :no     
      (weight-offset 0))
   "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile, taking the timing of the profile into account. For example, with profile-duration set to 2 the profile (a fenv) ranges from 0 to 2 so that the fenv describes a profile over 2 whole notes.
 
