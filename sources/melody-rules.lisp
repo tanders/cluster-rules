@@ -269,12 +269,12 @@ A profile as OMN expression with leading rests not yet properly supported.
 (defun follow-profile-hr
     (profiles
      &key
-     (voices 0)
-     (n 0)
-     (mode :pitch) ; options: :pitch, :rhythm
-     (constrain :profile) ; options: :profile, :intervals, :directions
-     (start 0)
-     (weight-offset 0))
+       (voices 0)
+       (n 0)
+       (mode :pitch) ; options: :pitch, :rhythm
+       (constrain :profile) ; options: :profile, :intervals, :directions
+       (start 0)
+       (weight-offset 0))
   "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile.
 
 Args:
@@ -310,7 +310,7 @@ BUG: mode :rhythm not yet working.
 		       ((fe:fenv? profile)
 			(if (> n 0)  
 			    (fenv:fenv->list profile n)
-			  (progn (warn "Cannot sample BPF with n set to 0") NIL)))
+			    (progn (warn "Cannot sample BPF with n set to 0") NIL)))
 		       #+opusmodus
 		       ((om:omn-formp profile)
 			(case mode
@@ -321,7 +321,7 @@ BUG: mode :rhythm not yet working.
 			      (mapcar #'(lambda (x) 
 					  (if (om:chordp x) 
 					      (first (last (om:melodize x)))
-					    x)) 
+					      x)) 
 				      (om:omn :pitch flat-omn)))))
 			  (:rhythm (om:omn :length profile))))
 		       (T (error "Not a supported profile format: ~A" profile))))
@@ -352,7 +352,7 @@ BUG: mode :rhythm not yet working.
 						      (:rhythm (abs (- (apply #'/ (last xs 2))
 								       (/ (nth (- l 2) my-profile)
 									  (nth (- l 1) my-profile))))))
-						  0))
+						    0))
 				    ;; distance between directions of last two vals
 				    ;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
 				    (:directions (if (>= l 2)
@@ -360,9 +360,9 @@ BUG: mode :rhythm not yet working.
 							(_direction-int
 							 (nth (- l 2) my-profile)
 							 (nth (- l 1) my-profile)))
-						   0)))))
-			    ;; otherwise no preference
-			    0)))
+						     0)))))
+			      ;; otherwise no preference
+			      0)))
 		    voice
 		    (case mode
 		      (:pitch :all-pitches)
@@ -376,7 +376,7 @@ BUG: mode :rhythm not yet working.
 				 (fe:fenv? x)))
 			    profiles))
 		profiles
-	      (make-list voices-length :initial-element profiles))
+		(make-list voices-length :initial-element profiles))
 	    my-voices)))))
 
 
