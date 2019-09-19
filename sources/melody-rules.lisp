@@ -175,7 +175,8 @@ A profile as OMN expression with leading rests not yet properly supported.
 						     (let ((fenv-val1 (fenv:y fenv-profile (/ (- time1 my-start) profile-duration)))
 							   (fenv-val2 (fenv:y fenv-profile (/ (- time2 my-start) profile-duration))))
 						       (- weight-offset
-							  (abs 
+							  (abs
+							   ;; BUG: clause for :profile missing
 							   (case constrain
 							     (:intervals (case mode
 									   ;; distance between distances of two vars and two fenv vals
@@ -197,7 +198,8 @@ A profile as OMN expression with leading rests not yet properly supported.
 		       (:profile (case mode
 				   (:pitch 
 				    (hr-rhythm-pitch-one-voice
-				     #'(lambda (rhythm-time-pitch) 
+				     #'(lambda (rhythm-time-pitch)
+					 ;; NOTE: Variable rhythm never used
 					 (destructuring-bind (rhythm time pitch) rhythm-time-pitch
 					   ;; (format T "follow-timed-profile-hr: rhythm: ~A, time: ~A, pitch: ~A~%" rhythm time pitch)
 					   (profile-hr pitch time)))
@@ -215,6 +217,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 						   (:pitch 
 						    (hr-rhythm-pitch-one-voice
 						     #'(lambda (rhythm-time-pitch1 rhythm-time-pitch2) 
+							 ;; NOTE: Variables rhythm1 and rhythm2 never used
 							 (destructuring-bind ((rhythm1 time1 pitch1) (rhythm2 time2 pitch2))
 							     (list rhythm-time-pitch1 rhythm-time-pitch2)
 							   (interval/direction-hr pitch1 time1 pitch2 time2)))
@@ -285,7 +288,7 @@ Args:
 
 - n (int): The first n notes are affected (if n is greater than the length of profile, then that length is taken). If 0, then n is disregarded and the full length of the profile is used. NOTE: if the profile is a fenv then make sure n is greater than 0.
 
-- mode: Select whether to constrain either the rhythmic values (rhythm) or the pitches (pitch). If you want to constrain both, then simply use two instances of this rule with different mode settings.
+- mode: Select whether to constrain either the rhythmic values (:rhythm) or the pitches (:pitch). If you want to constrain both, then simply use two instances of this rule with different mode settings.
 
 - constrain: Select whether pitch/rhythm should follow the profile directly, or whether pitch/rhythm intervals should follow the intervals between profile, or pitch/rhythm directions should follow the directions of profile intervals.
 
@@ -502,6 +505,7 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
       (mapcar #'* xs (ccl::pwgl-sample BPF (length xs)))))
 |#
 
+;; NOTE: Variables min and max never used
 (defun trfm-reverse (min max)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. The original value sequence is reversed."
   #'(lambda (xs) (reverse xs)))
