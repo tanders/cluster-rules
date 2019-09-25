@@ -382,6 +382,60 @@ BUG: mode :rhythm not yet working.
 	    my-voices)))))
 
 
+
+;; TODO:
+;; - Consider generalising rule for repetitions, steps and skips, and interval direction, with any combination of those selectable
+(defun repetitions-follow-profile
+    (profiles
+     &key
+       (voices 0)
+       (n 0)
+       (start 0)
+       (rule-type :true/false) ; :heur-switch
+       (weight 0))
+  "Pitch repetitions of the resulting music follow the given profile: if there is repetition in the profile, there should be a repetition in solution -- and vice versa.
+
+* Arguments:
+
+ - profile (a list of numbers, or -- when using Opusmodus -- an OMN sequence, or a list of these): Specifies the profile to be followed. In case an OMN sequence contains chords, then only the first chord note is extracted. If multiple profiles are given, they are applied to the given voices in the same order.
+ - voices (int or list of ints): The voice(s) to which the constraint is applied. 
+ - n (int): The first n notes are affected (if n is greater than the length of profile, then that length is taken). If 0, then n is disregarded and the full length of the profile is used. 
+ - start (int): At which note position to start applying this rule (zero-based). 
+
+Note: If this rule is used with pitch motifs, then only the selection of the 1st motif note is controlled by the rule. In other words, this rule is likely note suitable with motif domains.
+"
+  (let* ((my-voices (tu:ensure-list voices))
+	 (voices-length (length my-voices)))    
+    (mappend 
+     #'(lambda (profile-voice)
+	 (let* ((profile (first profile-voice))
+		(voice (second profile-voice))
+		(my-profile (make-profile-vector profile n))
+		(profile-length (length my-profile)))
+	   (R-pitches-one-voice
+	    #'(lambda (xs) 
+		"Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
+		;; NOTE: xs should ideally be reversed inside the Cluster Engine constraint applicator, so that the efficiently accessible head is the end, but seemingly this is not the case...
+		(let ((l (- (length xs) start)))
+		  (if (and (>= l 2)
+			   (or (= n 0) (<= l n))
+			   (<= l profile-length))
+		      (let ((profile-repetition? (apply #'= (last xs 2)))
+			    (solution-repetition? (= (elt my-profile (- l 2))
+						     (elt my-profile (- l 1)))))
+			(eql profile-repetition? solution-repetition?))
+		      T)))
+	    voice
+	    :all-pitches
+	    rule-type
+	    weight)))
+     (tu:mat-trans
+      (list (if (listp profiles)
+		profiles
+		(make-list voices-length :initial-element profiles))
+	    my-voices)))))
+
+
 #|
 (PWGLDef follow-interval-profile  
 	 ((voices 0)

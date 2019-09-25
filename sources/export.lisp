@@ -2,7 +2,7 @@
 
 (export '(;; profile
 	  follow-timed-profile-hr
-	  follow-profile-hr
+	  follow-profile-hr repetitions-follow-profile
 	  follow-interval-profile
 	  rhythm-profile-BPF-hr
 	  compose-functions
