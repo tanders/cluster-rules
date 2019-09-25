@@ -252,19 +252,43 @@ A profile as OMN expression with leading rests not yet properly supported.
 
 ;; follow-profile-hr
 
+(defun make-profile-vector (profile-data n)
+  "[Aux] Expects a profile that is either a list of numbers, a fenv or an OMN sequence and returns a vector of numbers."
+  (apply #'vector
+	 (cond ((_number-list? profile-data) profile-data)
+	       ((fe:fenv? profile-data)
+		(if (> n 0)  
+		    (fenv:fenv->list profile-data n)
+		    (progn (warn "Cannot sample BPF with n set to 0")
+			   NIL)))
+	       #+opusmodus
+	       ((om:omn-formp profile-data)
+		(case mode
+		  (:pitch 
+		   (let ((flat-omn (om:omn-merge-ties 
+				    (om:flatten (om:length-legato profile-data)))))
+		     (om:pitch-to-midi
+		      (mapcar #'(lambda (x) 
+				  (if (om:chordp x) 
+				      (first (last (om:melodize x)))
+				      x)) 
+			      (om:omn :pitch flat-omn)))))
+		  (:rhythm (om:omn :length profile-data))))
+	       (T (error "Not a supported profile format: ~A" profile-data)))))
+
 
 ;;; TODO:
 ;; - some test ensuring that argument values are in range allowed -- otherwise error (e.g. assert startments?)
-;; - OK revise for polyphonic case, i.e. allow for a list of lists/fenvs/omn expressions.
-;; - !! Efficiency: change profile from list into array/vector for faster access during search -- see PWConstraints example.. 
 ;; - Generalise: constrain could also receive a function, which is used for specifying that relation
 ;; - generalise this def for rhythms -- work in progress.
 ;; - ? Add support for "simple score format" by Kilian -- I can more easily transform such scores before handing them over 
 ;;   -> postpone until I actually need it
-;; - turn into polyphonic version, with different pitches per voice
+;; - OK? turn into polyphonic version, with different pitches per voice
 ;;   -> postpone until I actually need it
 ;; - ? Some case of arg constrain that is more flexible than :intervals but less than :directions -- allow for +/- one semitone (is this really worth it -- after all, these are just heuristics? It could be if it is combined with other heuristic constraints)
 ;;
+;; - OK revise for polyphonic case, i.e. allow for a list of lists/fenvs/omn expressions.
+;; - OK Efficiency: change profile from list into array/vector for faster access during search -- see PWConstraints example.. 
 ;; - OK change name to follow-profile-hr, and make sure you change all example patches. Store elsewhere in menu and file?
 ;; - OK support also BPFs
 ;; - OK Predefine some functions for transform and map
@@ -307,29 +331,7 @@ BUG: mode :rhythm not yet working.
      #'(lambda (profile-voice)
 	 (let* ((profile (first profile-voice))
 		(voice (second profile-voice))
-		(my-profile 
-		 ;; process different inputs: list of int, BPF, score... 
-		 (cond ((_number-list? profile) (apply #'vector profile))
-		       ((fe:fenv? profile)
-			(if (> n 0)  
-			    (fenv:fenv->vector profile n)
-			    (progn (warn "Cannot sample BPF with n set to 0")
-				   NIL)))
-		       #+opusmodus
-		       ((om:omn-formp profile)
-			(apply #'vector
-			       (case mode
-				 (:pitch 
-				  (let ((flat-omn (om:omn-merge-ties 
-						   (om:flatten (om:length-legato profile)))))
-				    (om:pitch-to-midi
-				     (mapcar #'(lambda (x) 
-						 (if (om:chordp x) 
-						     (first (last (om:melodize x)))
-						     x)) 
-					     (om:omn :pitch flat-omn)))))
-				 (:rhythm (om:omn :length profile)))))
-		       (T (error "Not a supported profile format: ~A" profile))))
+		(my-profile (make-profile-vector profile n))
 		(profile-length (length my-profile)))
 	   (funcall (case mode
 		      (:pitch #'hr-pitches-one-voice)
@@ -337,7 +339,7 @@ BUG: mode :rhythm not yet working.
 		    ;;; TODO: consider reducing following function (rule) for efficiency, because all case expressions etc. are executed again and again for every variable decision during search
 		    #'(lambda (xs) 
 			"Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
-			;; NOTE: xs should be reversed, but seemingly it is not..
+			;; NOTE: xs should ideally be reversed inside the Cluster Engine constraint applicator, so that the efficiently accessible head is the end, but seemingly this is not the case...
 			(let ((l (- (length xs) start)))
 			  (if (and (> l 0)
 				   (or (= n 0) (<= l n))
