@@ -309,24 +309,26 @@ BUG: mode :rhythm not yet working.
 		(voice (second profile-voice))
 		(my-profile 
 		 ;; process different inputs: list of int, BPF, score... 
-		 (cond ((_number-list? profile) profile) 
+		 (cond ((_number-list? profile) (apply #'vector profile))
 		       ((fe:fenv? profile)
 			(if (> n 0)  
-			    (fenv:fenv->list profile n)
-			    (progn (warn "Cannot sample BPF with n set to 0") NIL)))
+			    (fenv:fenv->vector profile n)
+			    (progn (warn "Cannot sample BPF with n set to 0")
+				   NIL)))
 		       #+opusmodus
 		       ((om:omn-formp profile)
-			(case mode
-			  (:pitch 
-			   (let ((flat-omn (om:omn-merge-ties 
-					    (om:flatten (om:length-legato profile)))))
-			     (om:pitch-to-midi
-			      (mapcar #'(lambda (x) 
-					  (if (om:chordp x) 
-					      (first (last (om:melodize x)))
-					      x)) 
-				      (om:omn :pitch flat-omn)))))
-			  (:rhythm (om:omn :length profile))))
+			(apply #'vector
+			       (case mode
+				 (:pitch 
+				  (let ((flat-omn (om:omn-merge-ties 
+						   (om:flatten (om:length-legato profile)))))
+				    (om:pitch-to-midi
+				     (mapcar #'(lambda (x) 
+						 (if (om:chordp x) 
+						     (first (last (om:melodize x)))
+						     x)) 
+					     (om:omn :pitch flat-omn)))))
+				 (:rhythm (om:omn :length profile)))))
 		       (T (error "Not a supported profile format: ~A" profile))))
 		(profile-length (length my-profile)))
 	   (funcall (case mode
@@ -335,6 +337,7 @@ BUG: mode :rhythm not yet working.
 		    ;;; TODO: consider reducing following function (rule) for efficiency, because all case expressions etc. are executed again and again for every variable decision during search
 		    #'(lambda (xs) 
 			"Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
+			;; NOTE: xs should be reversed, but seemingly it is not..
 			(let ((l (- (length xs) start)))
 			  (if (and (> l 0)
 				   (or (= n 0) (<= l n))
@@ -343,26 +346,26 @@ BUG: mode :rhythm not yet working.
 				 (abs
 				  ;; process different settings for constrain
 				  (case constrain
-				    (:profile  (- (first (last xs)) (nth (1- l) my-profile)))
+				    (:profile  (- (first (last xs)) (elt my-profile (1- l))))
 				    (:intervals (if (>= l 2)
 						    (case mode
 						      ;; distance between distances of last two vals
 						      (:pitch (- (abs (- (apply #'- (last xs 2))
-									 (- (nth (- l 2) my-profile)
-									    (nth (- l 1) my-profile))))))
+									 (- (elt my-profile (- l 2))
+									    (elt my-profile (- l 1)))))))
 						      ;; for rhythm distance is quotient not difference
 						      ;; TODO: unfinished for rhythm -- how to compute distance of distances?
 						      (:rhythm (abs (- (apply #'/ (last xs 2))
-								       (/ (nth (- l 2) my-profile)
-									  (nth (- l 1) my-profile))))))
+								       (/ (elt my-profile (- l 2))
+									  (elt my-profile (- l 1)))))))
 						    0))
 				    ;; distance between directions of last two vals
 				    ;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
 				    (:directions (if (>= l 2)
 						     (- (apply #'_direction-int (last xs 2))
 							(_direction-int
-							 (nth (- l 2) my-profile)
-							 (nth (- l 1) my-profile)))
+							 (elt my-profile (- l 2))
+							 (elt my-profile (- l 1))))
 						     0)))))
 			      ;; otherwise no preference
 			      0)))
