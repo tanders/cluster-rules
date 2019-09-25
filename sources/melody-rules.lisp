@@ -371,13 +371,7 @@ BUG: mode :rhythm not yet working.
 		      (:pitch :all-pitches)
 		      (:rhythm :list-with-all-durations)))))
      (tu:mat-trans
-      (list (if (and (listp profiles) 
-		     (every #'(lambda (x)
-				(or 
-				 #+opusmodus (om:omn-formp x)
-				 (_number-list? x)
-				 (fe:fenv? x)))
-			    profiles))
+      (list (if (listp profiles)
 		profiles
 		(make-list voices-length :initial-element profiles))
 	    my-voices)))))
