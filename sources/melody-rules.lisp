@@ -389,16 +389,20 @@ BUG: mode :rhythm not yet working.
     (profiles
      &key
        (voices 0)
+       (strictness :avoid-repetition) ; :avoid-repetition-and-non-repetition
        (n 0)
        (start 0)
        (rule-type :true/false) ; :heur-switch
        (weight 0))
-  "Pitch repetitions of the resulting music follow the given profile: if there is repetition in the profile, there should be a repetition in solution -- and vice versa.
+  "Pitch repetitions of the resulting music follow the given profile: if there is no repetition in the profile, there should be no repetition in solution -- and potentially vice versa.
 
 * Arguments:
 
  - profile (a list of numbers, or -- when using Opusmodus -- an OMN sequence, or a list of these): Specifies the profile to be followed. In case an OMN sequence contains chords, then only the first chord note is extracted. If multiple profiles are given, they are applied to the given voices in the same order.
  - voices (int or list of ints): The voice(s) to which the constraint is applied. 
+ - strictness (keyword):
+   - :avoid-repetition: If there is no repetition in profile, there should also be no repetition in solution. In case of a repetition in profile, no further constraint is applied.
+   - :avoid-repetition-and-non-repetition: Like :avoid-repetition, but additionally if there is a repetition in profile, then there also must be a repetition in solution.
  - n (int): The first n notes are affected (if n is greater than the length of profile, then that length is taken). If 0, then n is disregarded and the full length of the profile is used. 
  - start (int): At which note position to start applying this rule (zero-based). 
 
@@ -420,10 +424,15 @@ Note: If this rule is used with pitch motifs, then only the selection of the 1st
 		  (if (and (>= l 2)
 			   (or (= n 0) (<= l n))
 			   (<= l profile-length))
-		      (let ((profile-repetition? (apply #'= (last xs 2)))
-			    (solution-repetition? (= (elt my-profile (- l 2))
-						     (elt my-profile (- l 1)))))
-			(eql profile-repetition? solution-repetition?))
+		      (let ((profile-repetition? (= (elt my-profile (- l 2))
+						    (elt my-profile (- l 1))))
+			    (solution-repetition? (apply #'= (last xs 2))))
+			(ecase strictness
+			  (:avoid-repetition (if (not profile-repetition?)
+						 (not solution-repetition?)
+						 T))
+			  (:avoid-repetition-and-non-repetition
+			   (eql profile-repetition? solution-repetition?))))
 		      T)))
 	    voice
 	    :all-pitches
