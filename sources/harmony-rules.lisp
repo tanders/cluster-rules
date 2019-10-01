@@ -525,7 +525,7 @@ Other arguments are inherited from r-pitch-pitch."
   (r-pitch-pitch #'(lambda (pitches)
 		     (let ((actual-number (case rests-mode
 					    (:reduce-no (- pitch-number
-							   (length (remove NIL pitches :test-not #'eql))))
+							   (length (remove NIL pitches :test (complement #'eql)))))
 					    (:ignore pitch-number)))
 			   (harm (remove NIL ;; take out rests
 					 ;; NOTE: actual change compared with number-of-sim-PCs only here
