@@ -474,7 +474,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 Args: 
   PC-number (int): the number of the simultaneous PCs. The meaning of this setting depends on the argument condition.
   condition: Whether the number of simultaneous pitch classes should be at least the given PC-number (:min), or exactly that number (:equal), or at most that number (:max). 
-  rests-mode: If set to :reduce-no, then the number of simultaneous pitch classes is subtracted from PC-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments PC-number and condition.
+  rests-mode: If set to :reduce-no, then the number of simultaneous rests is subtracted from PC-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments PC-number and condition.
   voices: the list of voices to which the rule is applied.
   
 Other arguments are inherited from r-pitch-pitch."
@@ -518,7 +518,7 @@ Other arguments are inherited from r-pitch-pitch."
 Args: 
   pitch-number (int): the number of the simultaneous pitches. The meaning of this setting depends on the argument condition.
   condition: Whether the number of simultaneous pitch should be at least the given pitch-number (:min), or exactly that number (:equal), or at most that number (:max). 
-  rests-mode: If set to :reduce-no, then the number of simultaneous pitches is subtracted from pitch-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments pitch-number and condition.
+  rests-mode: If set to :reduce-no, then the number of simultaneous rests is subtracted from pitch-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments pitch-number and condition.
   voices: the list of voices to which the rule is applied.
   
 Other arguments are inherited from r-pitch-pitch."
