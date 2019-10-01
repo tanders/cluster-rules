@@ -477,18 +477,18 @@ Args:
   rests-mode: If set to :reduce-no, then the number of simultaneous pitch classes is subtracted from PC-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments PC-number and condition.
   voices: the list of voices to which the rule is applied.
   
-
 Other arguments are inherited from r-pitch-pitch."
   (r-pitch-pitch #'(lambda (pitches)
-		     (let ((actual-number (case rests-mode
+		     (let ((actual-number (ecase rests-mode
 					    (:reduce-no (- PC-number
-							   (length (remove NIL pitches :test-not #'eql))))
+							   (length (remove NIL pitches :test (complement #'eql)))))
 					    (:ignore PC-number)))
-			   (harm (remove NIL ;; take out rests
-					 (remove-duplicates
-					  (mapcar #'(lambda (p) (mod p 12)) pitches)))))
+			   (harm (remove-duplicates
+				  (mapcar #'(lambda (p) (mod p 12))
+					  (remove NIL ;; take out rests
+						  pitches)))))
 		       (if harm				  
-			   (funcall (case condition
+			   (funcall (ecase condition
 				      (:min #'>=)
 				      (:equal #'=)
 				      (:max #'<=))
