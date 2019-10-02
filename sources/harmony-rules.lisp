@@ -537,12 +537,14 @@ Other arguments are inherited from r-pitch-pitch."
 		       :rule-type rule-type :weight weight)))
 		  ;; Create args voices-subset number-subset for all incl. redundant constraints
 		  (remove-if (lambda (x) (< (getf x :number-subset) 1)) 
-			     (let ((l (length voices)))
+			     (let ((l (length voices))
+				   ;; Just in case...
+				   (sorted-voices (sort voices #'<)))
 			       (loop
 				  for i from 2 to l
 				  for no from (- pitch-number l -2) to pitch-number
 				  ;; a bit inefficient calling subseq multiple times, but fine for a short voices list
-				  collect `(:voices-subset ,(subseq voices 0 i)
+				  collect `(:voices-subset ,(subseq sorted-voices 0 i)
 					    :number-subset ,no)))))
       (constrain-number-of-sim-pitches-aux
        :pitch-number pitch-number :condition condition :rests-mode rests-mode :key key :voices voices

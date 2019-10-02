@@ -382,7 +382,6 @@ BUG: mode :rhythm not yet working.
 	    my-voices)))))
 
 
-
 ;; TODO:
 ;; - Consider generalising rule for repetitions, steps and skips, and interval direction, with any combination of those selectable
 (defun repetitions-follow-profile
