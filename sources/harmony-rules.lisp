@@ -454,11 +454,6 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 |#
 
 
-;; TODO:
-;; - ? Add additional input modes that not only take harmonic slices but all tones within a certain time frame into account, namely a full beat duration, a full bar duration, the beginning of a new harmony, and the whole duration of a harmony -- likely the current implementation of r-pitch-pitch does not allow for these cases.
-;; - ? Improve efficiency: shall I internally also call r-pitch-pitch with subsets of voices and with a reduced PC-number? That will help the solver, but that possibly also restricts the range of possible solutions.
-;; - ?? Have PC-number controlled with BPF? Possibly the current implementation of r-pitch-pitch does not allow for that. Also, that would restrict the would only work if underlying harmony allows for that, but could be useful 
-;; - OK Automatically reduce PC-number internally, if the number of sim pitches is snmaller due to rests (some pitch = NIL)
 (defun number-of-sim-PCs (&key
 			    (PC-number 2)
 			    (condition :min) ; options: :min, :equal, :max
@@ -469,40 +464,17 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 			    (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
 			    (rule-type :true/false) ; options: :true/false :heur-switch
 			    (weight 1))
-  "Controls the number of simultaneous pitch classes. Useful, for example, to require that some underlying harmony is expressed.
+  "Controls the number of simultaneous pitches. pitch classes. Useful, for example, to require that some underlying harmony is expressed.
 
 Args: 
-  PC-number (int): the number of the simultaneous PCs. The meaning of this setting depends on the argument condition.
-  condition: Whether the number of simultaneous pitch classes should be at least the given PC-number (:min), or exactly that number (:equal), or at most that number (:max). 
-  rests-mode: If set to :reduce-no, then the number of simultaneous rests is subtracted from PC-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments PC-number and condition.
-  voices: the list of voices to which the rule is applied.
-  
-Other arguments are inherited from r-pitch-pitch."
-  (r-pitch-pitch #'(lambda (pitches)
-		     (let ((actual-number (ecase rests-mode
-					    (:reduce-no (- PC-number
-							   (length (remove NIL pitches :test (complement #'eql)))))
-					    (:ignore PC-number)))
-			   (harm (remove-duplicates
-				  (mapcar #'(lambda (p) (mod p 12))
-					  (remove NIL ;; take out rests
-						  pitches)))))
-		       (if harm				  
-			   (funcall (ecase condition
-				      (:min #'>=)
-				      (:equal #'=)
-				      (:max #'<=))
-				    (length harm) actual-number)
-			   t)))
-		 voices
-		 timepoints
-		 input-mode
-		 gracenotes?
-		 :pitch
-		 rule-type weight))
+See number-of-sim-pitches-aux"
+  (number-of-sim-pitches-aux :pitch-number PC-number :condition condition :rests-mode rests-mode :voices voices
+			     :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
+			     :rule-type rule-type :weight weight
+			     ;; Unique element of this rule
+			     :key (lambda (p) (mod p 12))))
 
 
-;;; TODO: code repetition (see number-of-sim-PCs) -- abstract away in aux def
 (defun number-of-sim-pitches (&key
 			    (pitch-number 2)
 			    (condition :min) ; options: :min, :equal, :max
@@ -516,9 +488,36 @@ Other arguments are inherited from r-pitch-pitch."
   "Controls the number of simultaneous pitches. Useful, for example, to require that all pitches of chord layer differ.
 
 Args: 
+See number-of-sim-pitches-aux"
+  (number-of-sim-pitches-aux :pitch-number pitch-number :condition condition :rests-mode rests-mode :voices voices
+			     :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
+			     :rule-type rule-type :weight weight
+			     ;; Unique element of this rule
+			     :key #'identity))
+
+;; TODO:
+;; - ? Add additional input modes that not only take harmonic slices but all tones within a certain time frame into account, namely a full beat duration, a full bar duration, the beginning of a new harmony, and the whole duration of a harmony -- likely the current implementation of r-pitch-pitch does not allow for these cases.
+;; - ? Improve efficiency: shall I internally also call r-pitch-pitch with subsets of voices and with a reduced pitch-number? That will help the solver, but that possibly also restricts the range of possible solutions.
+;; - ?? Have pitch-number controlled with BPF? Possibly the current implementation of r-pitch-pitch does not allow for that. Also, that would restrict the would only work if underlying harmony allows for that, but could be useful 
+;; - OK Automatically reduce pitch-number internally, if the number of sim pitches is snmaller due to rests (some pitch = NIL)
+(defun number-of-sim-pitches-aux (&key
+				    (pitch-number 2)
+				    (condition :min) ; options: :min, :equal, :max
+				    (rests-mode :reduce-no) ; options: :reduce-no, :ignore
+				    (key #'identity)
+				    (voices '(0 1))
+				    (timepoints '(0))
+				    (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
+				    (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+				    (rule-type :true/false) ; options: :true/false :heur-switch
+				    (weight 1))
+  "Controls the number of simultaneous pitches or pitch-related parameters. Useful, for example, to require that all pitches of chord layer differ.
+
+Args: 
   pitch-number (int): the number of the simultaneous pitches. The meaning of this setting depends on the argument condition.
   condition: Whether the number of simultaneous pitch should be at least the given pitch-number (:min), or exactly that number (:equal), or at most that number (:max). 
   rests-mode: If set to :reduce-no, then the number of simultaneous rests is subtracted from pitch-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments pitch-number and condition.
+  key (unary function): function expecting a pitch and somehow transforming the pitch. The condition will be applied to results of the key function. Example: if key computes the pitch class, the constraint controls the number of simultaneous pitch classes.
   voices: the list of voices to which the rule is applied.
   
 Other arguments are inherited from r-pitch-pitch."
@@ -527,9 +526,9 @@ Other arguments are inherited from r-pitch-pitch."
 					    (:reduce-no (- pitch-number
 							   (length (remove NIL pitches :test (complement #'eql)))))
 					    (:ignore pitch-number)))
-			   (harm (remove NIL ;; take out rests
-					 ;; NOTE: actual change compared with number-of-sim-PCs only here
-					 (remove-duplicates pitches))))
+			   (harm (remove-duplicates (mapcar key
+							    ;; take out rests
+							    (remove NIL pitches)))))
 		       (if harm				  
 			   (funcall (ecase condition
 				      (:min #'>=)
