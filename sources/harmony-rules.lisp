@@ -467,50 +467,53 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
   "Controls the number of simultaneous pitches. pitch classes. Useful, for example, to require that some underlying harmony is expressed.
 
 Args: 
-See number-of-sim-pitches-aux"
-  (number-of-sim-pitches-aux :pitch-number PC-number :condition condition :rests-mode rests-mode :voices voices
-			     :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
-			     :rule-type rule-type :weight weight
-			     ;; Unique element of this rule
-			     :key (lambda (p) (mod p 12))))
+See constrain-number-of-sim-pitches"
+  (constrain-number-of-sim-pitches :pitch-number PC-number :condition condition :rests-mode rests-mode :voices voices
+				   :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
+				   :rule-type rule-type :weight weight
+				   ;; Unique element of this rule
+				   :key (lambda (p) (mod p 12))))
 
 
 (defun number-of-sim-pitches (&key
-			    (pitch-number 2)
-			    (condition :min) ; options: :min, :equal, :max
-			    (rests-mode :reduce-no) ; options: :reduce-no, :ignore
-			    (voices '(0 1))
-			    (timepoints '(0))
-			    (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
-			    (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
-			    (rule-type :true/false) ; options: :true/false :heur-switch
-			    (weight 1))
+				(pitch-number 2)
+				(condition :min) ; options: :min, :equal, :max
+				(rests-mode :reduce-no) ; options: :reduce-no, :ignore
+				(voices '(0 1))
+				(timepoints '(0))
+				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
+				(gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+				(rule-type :true/false) ; options: :true/false :heur-switch
+				(weight 1))
   "Controls the number of simultaneous pitches. Useful, for example, to require that all pitches of chord layer differ.
 
+This function does the same as constrain-number-of-sim-pitches, but is kept for backward compatibility.
+
 Args: 
-See number-of-sim-pitches-aux"
-  (number-of-sim-pitches-aux :pitch-number pitch-number :condition condition :rests-mode rests-mode :voices voices
-			     :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
-			     :rule-type rule-type :weight weight
-			     ;; Unique element of this rule
-			     :key #'identity))
+See constrain-number-of-sim-pitches"
+  (constrain-number-of-sim-pitches :pitch-number pitch-number :condition condition :rests-mode rests-mode :voices voices
+				   :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
+				   :rule-type rule-type :weight weight
+				   ;; Unique element of this rule
+				   :key #'identity))
 
 ;; TODO:
 ;; - ? Add additional input modes that not only take harmonic slices but all tones within a certain time frame into account, namely a full beat duration, a full bar duration, the beginning of a new harmony, and the whole duration of a harmony -- likely the current implementation of r-pitch-pitch does not allow for these cases.
-;; - ? Improve efficiency: shall I internally also call r-pitch-pitch with subsets of voices and with a reduced pitch-number? That will help the solver, but that possibly also restricts the range of possible solutions.
 ;; - ?? Have pitch-number controlled with BPF? Possibly the current implementation of r-pitch-pitch does not allow for that. Also, that would restrict the would only work if underlying harmony allows for that, but could be useful 
+;; - OK Redundant constraints for efficiency
 ;; - OK Automatically reduce pitch-number internally, if the number of sim pitches is snmaller due to rests (some pitch = NIL)
-(defun number-of-sim-pitches-aux (&key
-				    (pitch-number 2)
-				    (condition :min) ; options: :min, :equal, :max
-				    (rests-mode :reduce-no) ; options: :reduce-no, :ignore
-				    (key #'identity)
-				    (voices '(0 1))
-				    (timepoints '(0))
-				    (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
-				    (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
-				    (rule-type :true/false) ; options: :true/false :heur-switch
-				    (weight 1))
+(defun constrain-number-of-sim-pitches (&key
+					  (pitch-number 2)
+					  (condition :min) ; options: :min, :equal, :max
+					  (rests-mode :reduce-no) ; options: :reduce-no, :ignore
+					  (key #'identity)
+					  (voices '(0 1))
+					  (redundant-constraints? T)
+					  (timepoints '(0))
+					  (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
+					  (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+					  (rule-type :true/false) ; options: :true/false :heur-switch
+					  (weight 1))
   "Controls the number of simultaneous pitches or pitch-related parameters. Useful, for example, to require that all pitches of chord layer differ.
 
 Args: 
@@ -519,9 +522,48 @@ Args:
   rests-mode: If set to :reduce-no, then the number of simultaneous rests is subtracted from pitch-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments pitch-number and condition.
   key (unary function): function expecting a pitch and somehow transforming the pitch. The condition will be applied to results of the key function. Example: if key computes the pitch class, the constraint controls the number of simultaneous pitch classes.
   voices: the list of voices to which the rule is applied.
+  redundant-constraints? (Boolean): If true, redundant constraints with with subsets of voices and with a reduced pitch-number are also applied to cause fails earlier and thus speed up the search. However, if condition is set to :max, then these redundant constraints may also reduce the possible solutions, therefore this can be switched off with this argument.
   
 Other arguments are inherited from r-pitch-pitch."
+  ;; Improve efficiency with redundant constraints to cause fails earlier:
+  ;; internally also call constrain-number-of-sim-pitches-aux with subsets of voices and with a reduced pitch-number
+  (if redundant-constraints?
+      (tu:mappend (lambda (args)
+		    (destructuring-bind (&key voices-subset number-subset) args
+		      (list voices-subset number-subset)
+		      (constrain-number-of-sim-pitches-aux
+		       :pitch-number number-subset :condition condition :rests-mode rests-mode :key key :voices voices-subset
+		       :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
+		       :rule-type rule-type :weight weight)))
+		  ;; Create args voices-subset number-subset for all incl. redundant constraints
+		  (remove-if (lambda (x) (< (getf x :number-subset) 1)) 
+			     (let ((l (length voices)))
+			       (loop
+				  for i from 2 to l
+				  for no from (- pitch-number l -2) to pitch-number
+				  ;; a bit inefficient calling subseq multiple times, but fine for a short voices list
+				  collect `(:voices-subset ,(subseq voices 0 i)
+					    :number-subset ,no)))))
+      (constrain-number-of-sim-pitches-aux
+       :pitch-number pitch-number :condition condition :rests-mode rests-mode :key key :voices voices
+       :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
+       :rule-type rule-type :weight weight)))
+
+
+(defun constrain-number-of-sim-pitches-aux (&key
+					      (pitch-number 2)
+					      (condition :min) ; options: :min, :equal, :max
+					      (rests-mode :reduce-no) ; options: :reduce-no, :ignore
+					      (key #'identity)
+					      (voices '(0 1))
+					      (timepoints '(0))
+					      (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
+					      (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+					      (rule-type :true/false) ; options: :true/false :heur-switch
+					      (weight 1))
+  "See constrain-number-of-sim-pitches"
   (r-pitch-pitch #'(lambda (pitches)
+		     ;; TODO: assert pitch-number <= (length pitches)
 		     (let ((actual-number (case rests-mode
 					    (:reduce-no (- pitch-number
 							   (length (remove NIL pitches :test (complement #'eql)))))
