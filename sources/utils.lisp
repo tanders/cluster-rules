@@ -42,7 +42,7 @@
 
 (defun scale->pitchdomain (scale-pitches &key (min 60) (max 72))
   "Expects a list of pitches representing a scale (either pitch classes or absolute pitches), and a minimum and maximum pitch. Returns a pitch domain for clusterengine that contains all pitches between the min and max in the scale."
-  (let ((pcs (sort (mapcar #'(lambda (p) (mod p 12)) scale-pitches) #'<)))
+  (let ((pcs (sort (mapcar (lambda (p) (mod p 12)) scale-pitches) #'<)))
     (loop for pitch from min to max 
        when (member (mod pitch 12) pcs)
        collect (list pitch))))
@@ -70,7 +70,7 @@
 ;  "Returns T if the PC of pitch1 is a member in the PC set of pitches2. Rests (i.e. pitches that are nil) are taken care of (e.g., if pitch1 is nil then PC-member returns T."
 ;  (if pitch1
 ;      (member (mod pitch1 12) 
-;              (mapcar #'(lambda (p) (mod p 12))
+;              (mapcar (lambda (p) (mod p 12))
 ;                      (remove NIL pitches2)))
 ;    T))
 
@@ -139,11 +139,11 @@
 
 (flet ((get-durs (plist dur-factor dur-key)
 		 (let ((my-beat (getf plist :beat)))
-		   (list (mapcar #'(lambda (dur) (* (/ dur my-beat) dur-factor)) (getf plist dur-key)))))
+		   (list (mapcar (lambda (dur) (* (/ dur my-beat) dur-factor)) (getf plist dur-key)))))
        (get-pitches (plist start-pitch pitch-key)
 		    (list
-		     (mapcar #'(lambda (pcs) 
-				 (mapcar #'(lambda (pc) (+ pc start-pitch)) pcs)) 
+		     (mapcar (lambda (pcs) 
+				 (mapcar (lambda (pc) (+ pc start-pitch)) pcs)) 
 			     (getf plist pitch-key)))))
   (defmethod nth-output-patch-value ((self read-harmony-file-box) (out (eql 0)))
     "scaledurs"
@@ -250,7 +250,7 @@ Optional args:
 	 (progn
 	   (when increment? (setf rule::*score-counter* (1+ rule::*score-counter*)))
 	   (let ((filenames 
-		  (mapcar #'(lambda (ext) 
+		  (mapcar (lambda (ext) 
 			      (file-in-this-directory
 			       (concatenate 'string sub-directory "/" filename 
 					    (if increment?
@@ -292,7 +292,7 @@ Optional arguments:
   (if xs 
       (let ((x1 (first xs))
 	    (xr (rest xs)))
-	(append (mapcar #'(lambda (x2) (funcall fn x1 x2)) xr)
+	(append (mapcar (lambda (x2) (funcall fn x1 x2)) xr)
 		(map-pairwise fn xr)))
     NIL))
 

@@ -23,7 +23,7 @@ Args:
 rationalize? (Boolean): If the score has a constant tempo of 60, then start times can be output as ratios, by setting this argument to T.
 "
 	 ()
-	 (mappend #'(lambda (c) 
+	 (mappend (lambda (c) 
 		      (if (ccl::tied-p c)
 			  NIL
 			(list (let ((start-time
@@ -47,7 +47,7 @@ Args:
 rationalize? (Boolean): If the score has a constant tempo of 60, then durations can be output as ratios (i.e., 1/4 means a quarter note), by setting this argument to T."
 	 ()
 	 (let ((starts (voice->start-times voice)))
-	   (mapcar #'(lambda (start dur)
+	   (mapcar (lambda (start dur)
 		       (let ((dur-or-rest (* (if (zerop start) 1 (signum start)) ; sign of start
 					     dur)))
 			 (if rationalize? (rationalize dur-or-rest) dur-or-rest)))
@@ -66,7 +66,7 @@ rationalize? (Boolean): If the score has a constant tempo of 60, then durations 
 	 "Expects a voice and returns a list of its note pitches. If a score or part is given instead, then the first voice is selected. In case there is a rest, NIL is returned.
 "
 	 ()
-	 (mappend #'(lambda (c) 
+	 (mappend (lambda (c) 
 		      (cond ((ccl::rest-p c) '(NIL))
 			    ((ccl::tied-p c) NIL)
 			    (T (list (ccl::midi (first (ccl::collect-enp-objects c :note)))))))

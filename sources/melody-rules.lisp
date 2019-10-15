@@ -116,7 +116,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 "
   (let* ((my-voices (if (listp voices) voices (list voices)))
 	 (voices-length (length my-voices)))
-    (mappend #'(lambda (my-profile my-voice my-start my-end)
+    (mappend (lambda (my-profile my-voice my-start my-end)
 		 ;; (format T "follow-timed-profile-hr: my-profile: ~A, voice: ~A~%" my-profile voice)
 		 ;; Internal representation is a fenv to allow for interpolation. A score is transformed into a fenv.
 		 (let ((fenv-profile 
@@ -134,12 +134,12 @@ A profile as OMN expression with leading rests not yet properly supported.
 				      (tu:mat-trans
 				       ;; x values: note start times (skips the last end time)
 				       (let ((omn-dur (total-omn-duration flat-omn))) 
-					 (mapcar #'(lambda (x) (/ x omn-dur))
+					 (mapcar (lambda (x) (/ x omn-dur))
 						 (tu:dx->x (om:omn :length flat-omn) 0)))
 				       ;; y values
 				       (case mode
 					 (:pitch 
-					  (let ((pitches (mapcar #'(lambda (x) 
+					  (let ((pitches (mapcar (lambda (x) 
 								     (if (om:chordp x) 
 									 (first (last (om:melodize x)))
 								       x)) 
@@ -198,7 +198,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 		       (:profile (case mode
 				   (:pitch 
 				    (hr-rhythm-pitch-one-voice
-				     #'(lambda (rhythm-time-pitch)
+				     (lambda (rhythm-time-pitch)
 					 ;; NOTE: Variable rhythm never used
 					 (destructuring-bind (rhythm time pitch) rhythm-time-pitch
 					   ;; (format T "follow-timed-profile-hr: rhythm: ~A, time: ~A, pitch: ~A~%" rhythm time pitch)
@@ -208,7 +208,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 				     gracenotes?))
 				   (:rhythm 
 				    (hr-rhythms-one-voice
-				     #'(lambda (value-time) 
+				     (lambda (value-time) 
 					 (destructuring-bind (curr-value time) value-time
 					   (profile-hr curr-value time)))
 				     my-voice
@@ -216,7 +216,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 		       ((:intervals :directions) (case mode
 						   (:pitch 
 						    (hr-rhythm-pitch-one-voice
-						     #'(lambda (rhythm-time-pitch1 rhythm-time-pitch2) 
+						     (lambda (rhythm-time-pitch1 rhythm-time-pitch2) 
 							 ;; NOTE: Variables rhythm1 and rhythm2 never used
 							 (destructuring-bind ((rhythm1 time1 pitch1) (rhythm2 time2 pitch2))
 							     (list rhythm-time-pitch1 rhythm-time-pitch2)
@@ -226,7 +226,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 						     gracenotes?))
 						   (:rhythm 
 						    (hr-rhythms-one-voice
-						     #'(lambda (value-time1 value-time2) 
+						     (lambda (value-time1 value-time2) 
 							 (destructuring-bind ((var1 time1) (var2 time2))
 							     (list value-time1 value-time2)
 							   (interval/direction-hr var1 time1 var2 time2)))
@@ -234,7 +234,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 						     :dur/time))))
 		       ))))
 	     (if (and (listp profile) 
-		      (every #'(lambda (x)
+		      (every (lambda (x)
 				 (or 
 				  #+opusmodus (om:omn-formp x)
 				  (_number-list? x)
@@ -268,7 +268,7 @@ A profile as OMN expression with leading rests not yet properly supported.
 		   (let ((flat-omn (om:omn-merge-ties 
 				    (om:flatten (om:length-legato profile-data)))))
 		     (om:pitch-to-midi
-		      (mapcar #'(lambda (x) 
+		      (mapcar (lambda (x) 
 				  (if (om:chordp x) 
 				      (first (last (om:melodize x)))
 				      x)) 
@@ -328,7 +328,7 @@ BUG: mode :rhythm not yet working.
   (let* ((my-voices (tu:ensure-list voices))
 	 (voices-length (length my-voices)))    
     (mappend 
-     #'(lambda (profile-voice)
+     (lambda (profile-voice)
 	 (let* ((profile (first profile-voice))
 		(voice (second profile-voice))
 		(my-profile (make-profile-vector profile n))
@@ -337,7 +337,7 @@ BUG: mode :rhythm not yet working.
 		      (:pitch #'hr-pitches-one-voice)
 		      (:rhythm #'hr-rhythms-one-voice))
 		    ;;; TODO: consider reducing following function (rule) for efficiency, because all case expressions etc. are executed again and again for every variable decision during search
-		    #'(lambda (xs) 
+		    (lambda (xs) 
 			"Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
 			;; NOTE: xs should ideally be reversed inside the Cluster Engine constraint applicator, so that the efficiently accessible head is the end, but seemingly this is not the case...
 			(let ((l (- (length xs) start)))
@@ -410,13 +410,13 @@ Note: If this rule is used with pitch motifs, then only the selection of the 1st
   (let* ((my-voices (tu:ensure-list voices))
 	 (voices-length (length my-voices)))    
     (mappend 
-     #'(lambda (profile-voice)
+     (lambda (profile-voice)
 	 (let* ((profile (first profile-voice))
 		(voice (second profile-voice))
 		(my-profile (make-profile-vector profile n))
 		(profile-length (length my-profile)))
 	   (R-pitches-one-voice
-	    #'(lambda (xs) 
+	    (lambda (xs) 
 		"Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
 		;; NOTE: xs should ideally be reversed inside the Cluster Engine constraint applicator, so that the efficiently accessible head is the end, but seemingly this is not the case...
 		(let ((l (- (length xs) start)))
@@ -498,7 +498,7 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
 			(T (error "Neither list nor score nor BPF: ~A" profile))
 			)))
 	     (r-pitches-one-voice
-	      #'(lambda (xs) 
+	      (lambda (xs) 
 		  "Strict rule"
 		  (let ((l (- (length xs) start)))
 		    (if (and (>= l 2) ; (> l 0)
@@ -530,21 +530,21 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
 
 (defun compose-functions (&rest funs)
   "Expects any number of mapping or transformation functions and composes these into a single function that can be given to pitch-profile-hr or rhythm-profile-hr. The functions will be called in their given order."
-  #'(lambda (x) 
-      (reduce #'(lambda (y f) (funcall f y)) funs :initial-value x)))
+  (lambda (x) 
+      (reduce (lambda (y f) (funcall f y)) funs :initial-value x)))
 
 (defun mp-add-offset (offset)
   "Returns a mapping function for pitch-profile-hr or rhythm-profile-hr. offset is added to the original value."
-  #'(lambda (x) (+ x offset)))
+  (lambda (x) (+ x offset)))
 
 (defun mp-multiply (factor)
   "Returns a mapping function for pitch-profile-hr or rhythm-profile-hr. factor is multiplied to the original value."
-  #'(lambda (x) (* x factor)))
+  (lambda (x) (* x factor)))
 
 #|
 (defun mp-add-random-offset (max-random-offset)
   "Returns a mapping function for pitch-profile-hr or rhythm-profile-hr. max-random-offset is the maximun random deviation, above or below the original value."
-  #'(lambda (x) 
+  (lambda (x) 
       (let ((abs-rnd-offset (abs max-random-offset)))
 	(+ x (pw::g-random (* abs-rnd-offset -1) abs-rnd-offset)))))
 
@@ -553,23 +553,23 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
 
 (defun trfm-scale (min max)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. The original values are scaled between min and max."
-  #'(lambda (xs) (pw::g-scaling xs min max)))
+  (lambda (xs) (pw::g-scaling xs min max)))
 
 (defun trfm-add-BPF (BPF)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. To each original value the corresponding BPF vcalue is added."
-  #'(lambda (xs) 
+  (lambda (xs) 
       (mapcar #'+ xs (ccl::pwgl-sample BPF (length xs)))))
 
 (defun trfm-multiply-BPF (BPF)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. To each original value the corresponding BPF vcalue is multiplied."
-  #'(lambda (xs) 
+  (lambda (xs) 
       (mapcar #'* xs (ccl::pwgl-sample BPF (length xs)))))
 |#
 
 ;; NOTE: Variables min and max never used
 (defun trfm-reverse (min max)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. The original value sequence is reversed."
-  #'(lambda (xs) (reverse xs)))
+  (lambda (xs) (reverse xs)))
 
 
 
@@ -585,7 +585,7 @@ Args:
 voices: the number of the voice(s) to constrain.
 
 Optional arguments are inherited from r-pitches-one-voice."
-  (r-pitches-one-voice #'(lambda (p1 p2) 
+  (r-pitches-one-voice (lambda (p1 p2) 
 			   (if (and p1 p2) ; no rests
 			       (not (equal p1 p2))
 			       T))
@@ -609,8 +609,8 @@ window: the number of notes among which no repetition should happen (if this is 
 mode: whether to disallow repeated pitches (:pitches) or pitch classes (:pcs).
 
 Optional arguments are inherited from r-pitches-one-voice."
-  (r-pitches-one-voice #'(lambda (pitches) 
-			   (let* ((ps (mapcar #'(lambda (p)
+  (r-pitches-one-voice (lambda (pitches) 
+			   (let* ((ps (mapcar (lambda (p)
 						  (case mode 
 						    (:pitches p)
 						    (:pcs (pitch->pc p))))
@@ -662,7 +662,7 @@ Args rule-type and weight inherited from r-pitches-one-voice."
 		     ((null min/max-interval) min/max-interval))))
 	(let ((min-intervals (make-intervals min-interval))
 	      (max-intervals (make-intervals max-interval)))
-	  (r-pitches-one-voice #'(lambda (pitches)					  
+	  (r-pitches-one-voice (lambda (pitches)					  
 				   (let ((l (length pitches)))
 				     (if (and (>= l 2) (<= l n))
 					 (let* ((last-pitches (last pitches 2))
@@ -688,7 +688,7 @@ Args rule-type and weight inherited from r-pitches-one-voice."
 			       rule-type
 			       weight)))
       ;; both intervals are scalars
-      (r-pitches-one-voice #'(lambda (pitch1 pitch2)
+      (r-pitches-one-voice (lambda (pitch1 pitch2)
 			       (if (and pitch1 pitch2) ; no rests
 				   (let ((interval (abs (- pitch1 pitch2))))
 				     (and (if min-interval 
@@ -735,7 +735,7 @@ Args rule-type and weight inherited from r-pitches-one-voice."
 		     ((null min/max-interval) min/max-interval))))
 	(let ((min-intervals (make-intervals min-interval))
 	      (max-intervals (make-intervals max-interval)))
-	  (r-pitches-one-voice #'(lambda (pitches)					  
+	  (r-pitches-one-voice (lambda (pitches)					  
 				   (let ((l (length pitches)))
 				     (if (and (>= l 2) (<= l n))
 					 (let* ((last-pitches (last pitches 2))
@@ -761,7 +761,7 @@ Args rule-type and weight inherited from r-pitches-one-voice."
 			       rule-type
 			       weight)))
       ;; both intervals are scalars
-      (r-pitches-one-voice #'(lambda (pitch1 pitch2)
+      (r-pitches-one-voice (lambda (pitch1 pitch2)
 			       (if (and pitch1 pitch2) ; no rests
 				   (let ((interval (abs (- pitch1 pitch2))))
 				     (and (if min-interval 
@@ -795,8 +795,8 @@ Args:
   mode: Controls whether to only use the given intervals (:only-given), or whether to only use intervals that are not given (:exclude-given).
 
 Other arguments are inherited from R-pitches-one-voice."
-  (let ((pcs (mapcar #'(lambda (p) (mod p 12)) pitches)))
-    (R-pitches-one-voice #'(lambda (pitch)
+  (let ((pcs (mapcar (lambda (p) (mod p 12)) pitches)))
+    (R-pitches-one-voice (lambda (pitch)
 			     (if pitch ; no rests
 				 (let ((member? (case pcs?
 						  (:pitches (member pitch pitches))
@@ -827,7 +827,7 @@ Args:
   mode: Controls whether to only use the given intervals (:only-given), or whether to only use intervals that are not given (:exclude-given).
 
 Other arguments are inherited from R-pitches-one-voice."
-  (R-pitches-one-voice #'(lambda (pitch1 pitch2)
+  (R-pitches-one-voice (lambda (pitch1 pitch2)
 			   (if (and pitch1 pitch2) ; no rests
 			       (let* ((interval (- pitch2 pitch1))
 				      (member? (member (case absolute?
@@ -869,7 +869,7 @@ weight: factor for the heuristic weight.
 	 (hr-pitches-one-voice (cond 
 				 ((and (= n 0) (numberp interval))
 				   ;; constant interval
-				   #'(lambda (pitch1 pitch2) 
+				   (lambda (pitch1 pitch2) 
 				       ;; Heuristic rules prefer large return values, hence the negative interval is returned
 				       (- (* (abs (- interval
 						     (abs (- pitch1 pitch2))))
@@ -879,7 +879,7 @@ weight: factor for the heuristic weight.
 						    ((numberp interval) (make-list n :initial-element interval))
 						    ((ccl::break-point-function-p interval) (ccl::pwgl-sample interval n)))))
 				     ;; changing interval 
-				     #'(lambda (pitch_n1  pitch_n2) 
+				     (lambda (pitch_n1  pitch_n2) 
 					 (destructuring-bind ((pitch2 n1) (pitch2 n2)) (list pitch_n1  pitch_n2)
 					   (if (<= n1 n)
 					       (let ((offset (nth n1 offsets)))
@@ -931,7 +931,7 @@ Other arguments are inherited from R-pitches-one-voice."
 			     (when BPF?
 			       (error "accumulative-interval: Cannot sample BPF with the keyword argument number-of-notes set to its default 0.")))))
 	   (flet ((rule-application (n)
-		    (R-pitches-one-voice #'(lambda (pitches)
+		    (R-pitches-one-voice (lambda (pitches)
 					     (let ((n-pitches (last pitches n)))
 					       (if (and (= (length n-pitches) n)
 							(every #'identity pitches)) ; no rests
@@ -974,7 +974,7 @@ acc-factor (accuracy factor): factor how much the interval can deviate from that
 Examples: If rel-factor is 1 and acc-factor is also one, then the duration of a note would need to be the same as the interval starting at it (e.g., duration = 2 and interval is 2). If rel-factor is 32 and acc-factor is 2 (the defaults) then the interval can be any value between duration*32/2 and duration*32*2.  
 
 Optional arguments are inherited from r-rhythm-pitch-one-voice."
-  (r-rhythm-pitch-one-voice #'(lambda (dur-pitch1 dur-pitch2)
+  (r-rhythm-pitch-one-voice (lambda (dur-pitch1 dur-pitch2)
 				(if (and (second dur-pitch1) (second dur-pitch2)) ; no rests
 				    (let ((dur1 (first dur-pitch1))
 					  (interval (abs (- (second dur-pitch1) (second dur-pitch2)))))
@@ -1011,10 +1011,10 @@ Args:
 In case of intermitting rests the rule is not applied.
 
 Other arguments are inherited from R-pitches-one-voice."
-  (R-pitches-one-voice #'(lambda (all-pitches)
+  (R-pitches-one-voice (lambda (all-pitches)
 			   (let ((pitches (last all-pitches (1+ n))))
 			     (if (and (= (length pitches) (1+ n))
-				      (every #'(lambda (p) (not (null p))) pitches)) ; no rests
+				      (every (lambda (p) (not (null p))) pitches)) ; no rests
 				 (progn 
 				   ;; (format t "restrict-consecutive-directions: all-pitches: ~A, ~%   pitches: ~A~%" 
 				   ;; 	  all-pitches pitches)
@@ -1051,7 +1051,7 @@ Args:
   repetition?: Whether or not tone repetitions are allowed as resolution.
 
 Other arguments are inherited from R-pitches-one-voice."
-  (R-pitches-one-voice #'(lambda (pitch1 pitch2 pitch3)
+  (R-pitches-one-voice (lambda (pitch1 pitch2 pitch3)
 			   (if (and pitch1 pitch2 pitch3) ; no rests
 			       (let ((int1 (- pitch2 pitch1)) 
 				     (int2 (- pitch3 pitch2)))

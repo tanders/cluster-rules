@@ -24,8 +24,8 @@
 
 Arguments are inherited from r-pitch-pitch."
   (let ((sorted-voices (sort voices #'<)))
-    (mappend #'(lambda (voice1 voice2)
-		 (r-pitch-pitch #'(lambda (pitches)
+    (mappend (lambda (voice1 voice2)
+		 (r-pitch-pitch (lambda (pitches)
 				    ;; no rests -- no NILs
 				    (apply #'>= (remove NIL pitches))) 
 				(list voice1 voice2)
@@ -55,9 +55,9 @@ Args:
 
 Other arguments are inherited from r-pitch-pitch."
   (map-pairwise
-   #'(lambda (voice1 voice2)
-       (r-pitch-pitch #'(lambda (pitches1 pitches2)
-			  (if (every #'(lambda (p) p) (append pitches1 pitches2))  ; no rests -- no NILs
+   (lambda (voice1 voice2)
+       (r-pitch-pitch (lambda (pitches1 pitches2)
+			  (if (every (lambda (p) p) (append pitches1 pitches2))  ; no rests -- no NILs
 			      (let* ((pitch1a (first pitches1)) ; 1st and 2nd pitch of voice A and voice B
 				     (pitch1b (second pitches1))
 				     (pitch2a (first pitches2))

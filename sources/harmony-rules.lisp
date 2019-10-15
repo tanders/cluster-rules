@@ -45,9 +45,8 @@
   (let ((voice-pitch (first pitches))
 	(scale-pitches (second pitches)))
     (if (and voice-pitch scale-pitches)  ; no rests
-	(let ((scale-pcs (mapcar #'(lambda (p) (mod p 12))
-				 scale-pitches)))
-	  (every #'(lambda (p)
+	(let ((scale-pcs (mapcar (lambda (p) (mod p 12)) scale-pitches)))
+	  (every (lambda (p)
 		     (member (mod p 12) scale-pcs))
 		 ;; handle both individual pitches and chords
 		 (tu:ensure-list voice-pitch)))
@@ -72,7 +71,7 @@ Optional args:
 scale-voice (int, default 0): the voice representing the underlying scale.
 
 Other arguments are inherited from r-pitch-pitch."
-  (mapcar #'(lambda (voice)
+  (mapcar (lambda (voice)
 	      (r-pitch-pitch #'in-harmony?
 			     (list voice scale-voice)
 			     '(0)
@@ -101,7 +100,7 @@ Optional args:
 chord-voice (int, default 1): the voice representing the underlying chord.
 
 Other arguments are inherited from r-pitch-pitch. For example, it is possible to control whether this constraint should be applied to all notes, or only specific notes (input-mode). By default, it is applied to notes starting on a beat."
-  (mapcar #'(lambda (voice)
+  (mapcar (lambda (voice)
 	      (r-pitch-pitch #'in-harmony?
 			     (list voice chord-voice)
 			     '(0)
@@ -140,7 +139,7 @@ spectrum-voice (int, default 1): the voice representing the underlying spectra (
 Other arguments are inherited from r-pitch-pitch. For example, it is possible to control whether this constraint should be applied to all notes, or only specific notes (input-mode). By default, it is applied to notes starting on a beat.
 
 This rule is very similar to only-chord-PCs, but instead of pitch classes absolute pitches are constrained to the pitches of the given spectrum (quasi chord). "  
-  (mapcar #'(lambda (voice)
+  (mapcar (lambda (voice)
 	      (r-pitch-pitch #'in-spectrum?
 			     (list voice chord-voice)
 			     '(0)
@@ -169,14 +168,14 @@ Optional args:
 chord-voice (int, default 1): the voice representing the underlying chord.
 
 Other arguments are inherited from r-pitch-pitch. For example, it is possible to control whether this constraint should be applied to all notes, or only specific notes (input-mode). By default, it is applied to notes starting on a beat."
-  (mapcar #'(lambda (voice)
-	      (r-pitch-pitch #'(lambda (p_d_offs)
+  (mapcar (lambda (voice)
+	      (r-pitch-pitch (lambda (p_d_offs)
 				 "The PC of (first pitches) is in the PCs of (second pitches)."
 				 (destructuring-bind ((pitch1 dur1 offs1) (pitch2 dur2 offs2)) p_d_offs
 				   (if (and (and pitch1 pitch2) ;; no rests
 					    (> dur1 max-nonharmonic-dur)) ;; main condition
 				       (member (mod pitch1 12)
-					       (mapcar #'(lambda (p) (mod p 12))
+					       (mapcar (lambda (p) (mod p 12))
 						       pitch2))					    
 				       T)))
 			     (list voice chord-voice)
@@ -206,8 +205,8 @@ Optional args:
 chord-voice (int, default 1): the voice representing the underlying chord.
 
 Other arguments are inherited from r-pitch-pitch."
-  (mapcar #'(lambda (voice)
-	      (r-pitch-pitch #'(lambda (pitches1 pitches2)	     
+  (mapcar (lambda (voice)
+	      (r-pitch-pitch (lambda (pitches1 pitches2)	     
 				 (let* ((voice-pitch1 (first pitches1))
 					(voice-pitch2 (first pitches2))
 					(rest1? (null voice-pitch1)) ; 1st note is rest
@@ -243,11 +242,11 @@ Other arguments are inherited from r-pitch-pitch."
 	 "HACK: The very first tone (PC) in given voice(s) number must be a member of the first of the given chords (the list of list of chords from read-harmony-file).
 
 NOTE: an index variant for a pitch-pitch constraint (which could access the sim chord PCs) is not available, therefore this workaround."
-	 (mapcar #'(lambda (voice)
-		     (r-index-pitches-one-voice #'(lambda (pitch) 
+	 (mapcar (lambda (voice)
+		     (r-index-pitches-one-voice (lambda (pitch) 
 						    (if pitch ; no rest
 							(member (mod pitch 12)
-								(mapcar #'(lambda (chord-pitch) (mod chord-pitch 12)) 
+								(mapcar (lambda (chord-pitch) (mod chord-pitch 12)) 
 									(first chords)))
 							T))
 						'(0) ; positions
@@ -278,14 +277,14 @@ Optional args:
 chord-voice (int, default 1): the voice representing the underlying chord.
 
 Other arguments are inherited from r-pitch-pitch."
-  (mapcar #'(lambda (voice)
-	      (r-pitch-pitch #'(lambda (pitches1 pitches2 pitches3)
+  (mapcar (lambda (voice)
+	      (r-pitch-pitch (lambda (pitches1 pitches2 pitches3)
 				 ;; Every pitchesN is a list of the form (chord-pitches voice-pitch) 
 				 (if (and (first pitches2) (second pitches2))  ;; no rests
 				     (let ((voice-pitch2 (second pitches2)))
 				       (if (not (member (mod voice-pitch2 12) ; middle PC
 							;; chord PCs
-							(mapcar #'(lambda (p) (mod p 12)) (first pitches2))))
+							(mapcar (lambda (p) (mod p 12)) (first pitches2))))
 					   (and (if (second pitches1) ; no rest
 						    (<= (abs (- (second pitches1) voice-pitch2)) step-size)
 						    T)
@@ -323,8 +322,8 @@ Optional args:
 chord-voice (int, default 1): the voice representing the underlying chord.
 
 Other arguments are inherited from r-pitch-pitch."
-  (mapcar #'(lambda (voice)
-	      (r-pitch-pitch #'(lambda (pitches1 pitches2)
+  (mapcar (lambda (voice)
+	      (r-pitch-pitch (lambda (pitches1 pitches2)
 				 ;; Every pitchesN is a list of the form (chord-pitches voice-pitch) 
 				 (if (and (first pitches1) (first pitches2)
 					  (second pitches1) (second pitches2))  ;; no rests
@@ -333,9 +332,9 @@ Other arguments are inherited from r-pitch-pitch."
 					   (chord-pitches2 (first pitches2))
 					   (voice-pitch2 (second pitches2)))
 				       (if (not (member (mod voice-pitch1 12) 
-							(mapcar #'(lambda (p) (mod p 12)) chord-pitches1)))
+							(mapcar (lambda (p) (mod p 12)) chord-pitches1)))
 					   (member (mod voice-pitch2 12)
-						   (mapcar #'(lambda (p) (mod p 12)) chord-pitches2))
+						   (mapcar (lambda (p) (mod p 12)) chord-pitches2))
 					   T))
 				     T))
 			     (list chord-voice voice)
@@ -357,7 +356,7 @@ Other arguments are inherited from r-pitch-pitch."
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "[Quasi aux def] The pitches of the 1st given voice differ from the sim pitches of the remaining voices."
-  (r-pitch-pitch #'(lambda (pitches)
+  (r-pitch-pitch (lambda (pitches)
 		     (if (first pitches) ; no rest
 			 (not (member (first pitches) 
 				      (rest pitches)))
@@ -387,7 +386,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-pitches-aux b
   (let* ((voices (sort voices #'<))
 	 (len (length voices))
 	 (rev (reverse voices)))
-    (mapcar #'(lambda (i) 
+    (mapcar (lambda (i) 
 		(unequal-sim-pitches-aux :voices (subseq rev i len)
 					 :timepoints timepoints
 					 :input-mode input-mode
@@ -410,10 +409,10 @@ TODO: Revise this definition -- can the interplay with unequal-sim-pitches-aux b
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "[Quasi aux def] The PCs of the 1st given voice are unequal to the sim PCs of the remaining voices."
-  (r-pitch-pitch #'(lambda (pitches)
+  (r-pitch-pitch (lambda (pitches)
 		     (if (first pitches) ; no rest
 			 (not (member (mod (first pitches) 12) 
-				      (mapcar #'(lambda (p) (mod p 12)) 
+				      (mapcar (lambda (p) (mod p 12)) 
 					      (rest pitches))))
 			 T))
 		 voices
@@ -440,7 +439,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
   (let* ((voices (sort voices #'<))
 	 (len (length voices))
 	 (rev (reverse voices)))
-    (mapcar #'(lambda (i) 
+    (mapcar (lambda (i) 
 		(unequal-sim-PCs-aux :voices (subseq rev i len)
 				     :input-mode input-mode
 				     :gracenotes? gracenotes?
@@ -564,7 +563,7 @@ Other arguments are inherited from r-pitch-pitch."
 					      (rule-type :true/false) ; options: :true/false :heur-switch
 					      (weight 1))
   "See constrain-number-of-sim-pitches"
-  (r-pitch-pitch #'(lambda (pitches)
+  (r-pitch-pitch (lambda (pitches)
 		     ;; TODO: assert pitch-number <= (length pitches)
 		     (let ((actual-number (case rests-mode
 					    (:reduce-no (- pitch-number
@@ -624,7 +623,7 @@ Other arguments are inherited from r-pitch-pitch.
        (case combinations 
 	 (:over-bass 
 	  (let ((bass-voice (first sorted-voices)))
-	    (mapcar #'(lambda (voice)
+	    (mapcar (lambda (voice)
 			(r-pitch-pitch #'rule
 				       (list bass-voice voice)
 				       timepoints
@@ -634,7 +633,7 @@ Other arguments are inherited from r-pitch-pitch.
 				       rule-type weight)) 
 		    (rest sorted-voices))))
 	 (:consecutive-voices
-	  (mapcar #'(lambda (voice1 voice2)
+	  (mapcar (lambda (voice1 voice2)
 		      (r-pitch-pitch #'rule
 				     (list voice1 voice2)
 				     timepoints
@@ -644,7 +643,7 @@ Other arguments are inherited from r-pitch-pitch.
 				     rule-type weight)) 
 		  (butlast sorted-voices) (rest sorted-voices)))
 	 (:all-combinations
-	  (map-pairwise #'(lambda (voice1 voice2)
+	  (map-pairwise (lambda (voice1 voice2)
 			    (r-pitch-pitch #'rule
 					   (list voice1 voice2)
 					   timepoints
@@ -697,7 +696,7 @@ Other arguments are inherited from r-pitch-pitch.
        (case combinations 
 	 (:over-bass 
 	  (let ((bass-voice (first sorted-voices)))
-	    (mapcar #'(lambda (voice)
+	    (mapcar (lambda (voice)
 			;; (format T "min/max-harmonic-interval :over-bass")
 			(r-pitch-pitch #'rule
 				       (list bass-voice voice)
@@ -708,7 +707,7 @@ Other arguments are inherited from r-pitch-pitch.
 				       rule-type weight)) 
 		    (rest sorted-voices))))
 	 (:consecutive-voices
-	  (mapcar #'(lambda (voice1 voice2)
+	  (mapcar (lambda (voice1 voice2)
 		      ;; (format T "min/max-harmonic-interval :consecutive-voices: voice1: ~A, voice2: ~A" voice1 voice2)
 		      (r-pitch-pitch #'rule
 				     (list voice1 voice2)
@@ -719,7 +718,7 @@ Other arguments are inherited from r-pitch-pitch.
 				     rule-type weight)) 
 		  (butlast sorted-voices) (rest sorted-voices)))
 	 (:all-combinations
-	  (map-pairwise #'(lambda (voice1 voice2)
+	  (map-pairwise (lambda (voice1 voice2)
 			    ;; (format T "min/max-harmonic-interval :all-combinations")
 			    (r-pitch-pitch #'rule
 					   (list voice1 voice2)
@@ -800,7 +799,7 @@ chord-voice (default 1): the voice representing the underlying chord."
   "Restricts the chords at the given positions (0-based) in the chord-voice to the given chord."
   (loop for pos in positions
      append (R-index-pitches-one-voice
-	     #'(lambda (ps)
+	     (lambda (ps)
 		 (if ps ; no rest
 		     (equal ps chord)
 		     T))
@@ -823,7 +822,7 @@ If pc? is set to T, then this constraint compares pitch classes instead of actua
   (let ((root-pc (mod root 12)))
     (loop for pos in positions
        append (R-index-pitches-one-voice
-	       #'(lambda (ps)
+	       (lambda (ps)
 		   (if ps ; no rest
 		       (if pc? ;;; TODO: do this test only once at the time this rule is created
 			   (= (mod (first ps) 12) root-pc)
@@ -869,9 +868,9 @@ If pc? is set to T, then this constraint compares pitch classes instead of actua
 			(first-n (remove-duplicates (pitch->pc chord2) :from-end T) n)
 			(pitch->pc chord2))))
     (apply #'+
-	   (mapcar #'(lambda (pc2)
+	   (mapcar (lambda (pc2)
 		       (apply #'min
-			      (mapcar #'(lambda (pc1)
+			      (mapcar (lambda (pc1)
 					  (let* ((pc-int (pc-interval pc1 pc2))
 						 (pc-int-complement (- 12 pc-int)))
 					    (min pc-int pc-int-complement)))
@@ -896,7 +895,7 @@ If pc? is set to T, then this constraint compares pitch classes instead of actua
   - chord-voice (int): the voice representing the underlying chord.
   - n (int): only the first `n' pitch classes of chords are taken into account, if this argument is set.
 "
-  (R-pitches-one-voice #'(lambda (chord1 chord2)
+  (R-pitches-one-voice (lambda (chord1 chord2)
 			   (<= (voice-leading-distance chord1 chord2 n)
 			       max-distance))
 		       chord-voice
@@ -1103,7 +1102,7 @@ Music representation convention:
    (list 
     (if allow-interchange-progression
 	(R-pitches-one-voice
-	 #'(lambda (c1 c2 c3)
+	 (lambda (c1 c2 c3)
 	     (if (descending-progression? c1 c2 n)
 		 (or (ascending-progression? c1 c3 n)
 		     (constant-progression? c1 c3))))
@@ -1112,7 +1111,7 @@ Music representation convention:
 	 rule-type
 	 weight)
 	(R-pitches-one-voice
-	 #'(lambda (c1 c2 c3)
+	 (lambda (c1 c2 c3)
 	     (if (descending-progression? c1 c2 n)
 		 (ascending-progression? c1 c3 n)))
 	 chord-voice
@@ -1122,7 +1121,7 @@ Music representation convention:
    (when (not allow-repetition)
      (list 
       (R-pitches-one-voice
-       #'(lambda (c1 c2)
+       (lambda (c1 c2)
 	   (not (constant-progression? c1 c2)))
        chord-voice
        :pitches
@@ -1142,7 +1141,7 @@ Music representation convention:
   - n (int): only the first n pitch classes of chords are taken into account, if this argument is set.
 "
   (R-pitches-one-voice 
-   #'(lambda (c1 c2)
+   (lambda (c1 c2)
        (ascending-progression? c1 c2 n))
    chord-voice
    :pitches
@@ -1179,14 +1178,14 @@ Music representation convention:
       (case progression
 	(:ascending (ascending-progression :chord-voice chord-voice :n n :rule-type rule-type :weight weight))
 	;; (:ascending* (R-pitches-one-voice
-	;; 	      #'(lambda (c1 c2)
+	;; 	      (lambda (c1 c2)
 	;; 		  (ascending-progression*? c1 c2))
 	;; 	      chord-voice
 	;; 	      :pitches
 	;; 	      rule-type
 	;; 	      weight))
 	((:harmonic-band :common-pcs) (R-pitches-one-voice
-				       #'(lambda (c1 c2)
+				       (lambda (c1 c2)
 					   (common-pcs? c1 c2))
 				       chord-voice
 				       :pitches

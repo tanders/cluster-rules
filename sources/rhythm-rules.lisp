@@ -97,7 +97,7 @@ NOTE: This rule can apply different BPFs to different voices with different sett
 "
   (:groupings '(3 2))
   (let ((l (length (if (listp BPFs) BPFs (list BPFs)))))
-    (mappend #'(lambda (BPF voice min-scaling max-scaling rnd-deviation permutate)
+    (mappend (lambda (BPF voice min-scaling max-scaling rnd-deviation permutate)
 		 ;; (format T "rhythm-profile-BPF-hr 1: args: ~A ~%" 
 		 ;; 	(list BPF voice min-scaling max-scaling rnd-deviation permutate))
 		 (let* ((BPF-xs (pw::g-scaling (pw::g-power (pw::g-scaling (ccl::pwgl-sample BPF n) 
@@ -108,7 +108,7 @@ NOTE: This rule can apply different BPFs to different voices with different sett
 			(rnds (loop for i from 1 to n
 				 collect (pw::g-random (* abs-rnd-deviation -1) abs-rnd-deviation)))
 			(BPF-rnd-xs (funcall permutate (pw::g+ BPF-xs (pw::g* BPF-xs rnds)))))
-		   (hr-rhythms-one-voice #'(lambda (xs) 
+		   (hr-rhythms-one-voice (lambda (xs) 
 					     "Returns a heuristic -- better BPF matches are preferred. Essentially, returns the abs difference between current dur and ; commentrresponding env value."
 					     ;; (format T "rhythm-profile-BPF-hr: xs: ~A, BPF-rnd-xs: ~A ~%" 
 					     ;; 	    xs BPF-rnd-xs)
@@ -216,7 +216,7 @@ TODO: Include in rhythm menu, once finished
 		 )
 	    (cond ((= length-rule-args 1)
 		   ;; create a function with same number of args as given rule
-		   #'(lambda (offset_dur1)
+		   (lambda (offset_dur1)
 		       (destructuring-bind ((offs1 dur1)) (list offset_dur1)
 			 (let ((syncopated? (/= offs1 0))
 			       ;; (accented? (apply rule (list (list dur1 offs1))))
@@ -233,7 +233,7 @@ TODO: Include in rhythm menu, once finished
 			     (apply rule (list (list dur1 offs1)))
 			     T)))))
 		  ((= length-rule-args 2)
-		   #'(lambda (offset_dur1 offset_dur2) 
+		   (lambda (offset_dur1 offset_dur2) 
 		       (destructuring-bind ((offs1 dur1) (offs2 dur2)) (list offset_dur1 offset_dur2)
 			 (let ((syncopated? (/= offs2 0))
 			       ;; (accented? (apply rule (list (list dur1 offs1) (list dur2 offs2) (list dur3 offs3))))
@@ -250,7 +250,7 @@ TODO: Include in rhythm menu, once finished
 			     (apply rule (list (list dur1 offs1) (list dur2 offs2)))
 			     T)))))
 		  ((= length-rule-args 3)
-		   #'(lambda (offset_dur1 offset_dur2 offset_dur3) 
+		   (lambda (offset_dur1 offset_dur2 offset_dur3) 
 		       (destructuring-bind ((offs1 dur1) (offs2 dur2) (offs3 dur3)) (list offset_dur1 offset_dur2 offset_dur3)
 			 (let ((syncopated? (/= offs2 0))
 			       ;; (accented? (apply rule (list (list dur1 offs1) (list dur2 offs2) (list dur3 offs3))))
@@ -296,7 +296,7 @@ TODO: Include in rhythm menu, once finished
 
 ;; BUG: not working yet."
 ;; 	 ()
-;; 	 (mapcar #'(lambda (voice)
+;; 	 (mapcar (lambda (voice)
 ;; 		     ;; r-note-meter constraints all events of voice
 ;; 		     (r-rhythm-rhythm (let* ((a-rule (case accent-rule
 ;; 						       (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
@@ -306,7 +306,7 @@ TODO: Include in rhythm menu, once finished
 ;; 					     (length-a-rule-args (length (ccl::function-lambda-list a-rule))))
 ;; 					;; create a function with same number of args as given rule
 ;; 					(cond ((= length-a-rule-args 1)
-;; 					       #'(lambda (d_offs) 
+;; 					       (lambda (d_offs) 
 ;; 						   (format t "syncopation: d_offs: ~S, not accent? ~S, offset? ~S, result:~S~%" 
 ;; 							   d_offs 
 ;; 							   (not (funcall a-rule d_offs))
@@ -318,7 +318,7 @@ TODO: Include in rhythm menu, once finished
 ;; 						       (= (second d_offs) 0)
 ;; 						       T)))
 ;; 					      ((= length-a-rule-args 3)
-;; 					       #'(lambda (d_offs1 d_offs2 d_offs3) 
+;; 					       (lambda (d_offs1 d_offs2 d_offs3) 
 ;; 						   (format t "syncopation: d_offs: ~S, not accent? ~S, offset? ~S, result:~S~%" 
 ;; 							   (list d_offs1 d_offs2 d_offs3)
 ;; 							   (not (funcall a-rule d_offs1 d_offs2 d_offs3)) 
@@ -410,7 +410,7 @@ Intended for r-note-meter with format d_offs on beats."
 
 (defun max-multiple (int &optional (multiple-candidates '(2 3 5 7)))
   "Aux def"
-  (apply #'max (mapcar #'(lambda (x) (gcd int x)) multiple-candidates)))
+  (apply #'max (mapcar (lambda (x) (gcd int x)) multiple-candidates)))
 
 
 (defun only-simple-tuplet-offs-rule  (d_offs)
@@ -471,7 +471,7 @@ Intended for r-note-meter with format d_offs on beats."
 ;; 		(rnds (loop for i from 1 to n
 ;; 			    collect (pw::g-random (* abs-rnd-deviation -1) abs-rnd-deviation)))
 ;; 		(BPF-rnd-xs (funcall permutate (pw::g+ BPF-xs (pw::g* BPF-xs rnds)))))
-;; 	 (hr-rhythms-one-voice #'(lambda (rhythm)
+;; 	 (hr-rhythms-one-voice (lambda (rhythm)
 ;; 				   ())
 ;; 			       voices
 ;; 			       :all-durations))
@@ -489,7 +489,7 @@ Intended for r-note-meter with format d_offs on beats."
 Hint: make sure you included rests in your rhythm domain (as negative integers). 
 
 Other optional arguments are inherited from r-index-rhythms-one-voice."
-  (r-index-rhythms-one-voice #'(lambda (rhythm)
+  (r-index-rhythms-one-voice (lambda (rhythm)
 				 (and (< rhythm 0)
 				      (or (not rest-dur) ; rest-dur is NIL
 					  (member (abs rhythm) 
@@ -524,7 +524,7 @@ Optional arg:
 
 Other arguments are inherited from R-meter-note.
 "
-  (r-meter-note #'(lambda (offs_motif)
+  (r-meter-note (lambda (offs_motif)
 		    (let ((offs (first offs_motif))
 			  (motif (second offs_motif)))
 		      (if (and (>= (first motif) 0) ; motif starting with note?
@@ -573,7 +573,7 @@ Other arguments are inherited from R-rhythms-one-voice
 		      (ccl::pwgl-sample phrase-length n)
 		      phrase-length)))
     (R-rhythms-one-voice 
-     #'(lambda (durs)
+     (lambda (durs)
 	 (let ((curr-phrase-length (if (ccl::break-point-function-p phrase-length)
 				       (nth (length durs) BPF-vals)
 				       phrase-length))
@@ -604,7 +604,7 @@ Other arguments are inherited from R-rhythms-one-voice
      ;; 		 (< (first rev-durs) 0) ; current item is a rest
      ;; 		 (> (second rev-durs) 0) ; previous dur is not rest
      ;; 		 ) 
-     ;; 	    (let ((prev-rest-pos (position-if #'(lambda (x) (< x 0))
+     ;; 	    (let ((prev-rest-pos (position-if (lambda (x) (< x 0))
      ;; 					      (rest rev-durs))))
      ;; 	      ;; TODO: revise case where that have not been rests befoer
      ;; 	      (if prev-rest-pos ; there has been a rest before
@@ -643,9 +643,9 @@ Other args are inherited from R-rhythm-rhythm.
 BUG: Arg factor seemingly not fully working as documented yet if factor > 1.
 "
   (let ((voice1 (first voices)))
-    (mapcar #'(lambda (voice2)
+    (mapcar (lambda (voice2)
 		;; (format T "similar-sim-durations 1: voice1: ~A, voice2: ~A~%" voice1 voice2)
-		(R-rhythm-rhythm #'(lambda (d1_offset_d2)
+		(R-rhythm-rhythm (lambda (d1_offset_d2)
 				     (destructuring-bind (dur1 offset dur2) d1_offset_d2
 				       (let ((both-notes-or-rests?  
 					      (case rest-mode
@@ -759,19 +759,19 @@ Other arguments are inherited from r-note-meter.
 	    (length-rule-args (tu:arity rule)))
        ;; create a function with same number of args as given rule
        (cond ((= length-rule-args 1)
-	      #'(lambda (args1) 
+	      (lambda (args1) 
 		  (accent-strictness 
 		   strictness (funcall rule args1) (= (offset args1) 0))))
 	     ((= length-rule-args 2)
-	      #'(lambda (args1 args2) 
+	      (lambda (args1 args2) 
 		  (accent-strictness 
 		   strictness (funcall rule args1 args2) (= (offset args2) 0))))
 	     ((= length-rule-args 3)
-	      #'(lambda (args1 args2 args3) 
+	      (lambda (args1 args2 args3) 
 		  (accent-strictness 
 		   strictness (funcall rule args1 args2 args3) (= (offset args2) 0))))
 	     ((= length-rule-args 4)
-	      #'(lambda (args1 args2 args3 args4) 
+	      (lambda (args1 args2 args3 args4) 
 		  (accent-strictness 
 		   strictness (funcall rule args1 args2 args3 args4) (= (offset args3) 0))))
 	     (T (error "Rule ~A with unsupported number of arguments" rule))))
@@ -813,7 +813,7 @@ Optional args:
 
 Other arguments are inherited from r-rhythm-rhythm.
 "
-  (mapcar #'(lambda (voice)
+  (mapcar (lambda (voice)
 	      ;; r-note-meter constraints all events of voice
 	      (r-rhythm-rhythm
                (let* ((rule (case accent-rule
@@ -825,15 +825,15 @@ Other arguments are inherited from r-rhythm-rhythm.
                       )
                  ;; create a function with same number of args as given rule
                  (cond ((= length-rule-args 1)
-                        #'(lambda (d_offs) 
+                        (lambda (d_offs) 
                             (accent-strictness 
                              strictness (funcall rule d_offs) (= (second d_offs) 0))))
                        ((= length-rule-args 2)
-                        #'(lambda (d_offs1 d_offs2) 
+                        (lambda (d_offs1 d_offs2) 
                             (accent-strictness 
                              strictness (funcall rule d_offs1 d_offs2) (= (second d_offs2) 0))))
                        ((= length-rule-args 3)
-                        #'(lambda (d_offs1 d_offs2 d_offs3) 
+                        (lambda (d_offs1 d_offs2 d_offs3) 
                             (accent-strictness 
                              strictness (funcall rule d_offs1 d_offs2 d_offs3) (= (second d_offs2) 0))))
                        (T (error "Rule ~A with unsupported number of arguments" rule))))
@@ -860,7 +860,7 @@ Other arguments are inherited from r-rhythm-rhythm.
 ;; 	  (weight 1))
 ;; 	 "[Testing] Variant of accents-in-other-voice, but only for the strictness position, that traverses all accents in the accent-voice, to make sure that on any necessary position an accent is enforced (and not avoided by syncopation)."
 ;; 	 ()
-;; 	 (mapcar #'(lambda (voice)
+;; 	 (mapcar (lambda (voice)
 ;; 		     ;; r-note-meter constraints all events of voice
 ;; 		     (r-rhythm-rhythm (let* ((rule (case accent-rule
 ;; 						     (:longer-than-predecessor #'accent-longer-than-predecessor-ar)
@@ -870,18 +870,18 @@ Other arguments are inherited from r-rhythm-rhythm.
 ;; 					     (length-rule-args (length (ccl::function-lambda-list rule))))
 ;; 					;; create a function with same number of args as given rule
 ;; 					(cond ((= length-rule-args 1)
-;; 					       #'(lambda (d1_offs_d2) 
+;; 					       (lambda (d1_offs_d2) 
 ;; 						   (accent-strictness 
 ;; 						    :position (funcall rule (d1_offs_d2->d_offs d1_offs_d2))
 ;; 						    (= (second d1_offs_d2) 0))))
 ;; 					      ((= length-rule-args 2)
-;; 					       #'(lambda (d1_offs_d2_1 d1_offs_d2_2) 
+;; 					       (lambda (d1_offs_d2_1 d1_offs_d2_2) 
 ;; 						   (accent-strictness 
 ;; 						    :position (funcall rule (d1_offs_d2->d_offs d1_offs_d2_1)
 ;; 								       (d1_offs_d2->d_offs d1_offs_d2_2))
 ;; 						    (= (second d1_offs_d2_2) 0))))
 ;; 					      ((= length-rule-args 3)
-;; 					       #'(lambda (d1_offs_d2_1 d1_offs_d2_2 d1_offs_d2_3) 
+;; 					       (lambda (d1_offs_d2_1 d1_offs_d2_2 d1_offs_d2_3) 
 ;; 						   (accent-strictness 
 ;; 						    :position (funcall rule (d1_offs_d2->d_offs d1_offs_d2_1)
 ;; 								       (d1_offs_d2->d_offs d1_offs_d2_2) 
@@ -929,14 +929,14 @@ Other arguments are inherited from r-rhythm-rhythm.
 
 (defun mk-accent-has-at-least-duration-ar (&key (min-duration 1/4))
   "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are at least min-duration long."
-  #'(lambda (d_offs)
+  (lambda (d_offs)
       (destructuring-bind (dur offs) d_offs
 	(when (plusp dur) ; no rest
 	  (>= dur min-duration)))))
 
 (defun mk-accent->-prep-OR->=-dur-ar (&key (min-duration 1/4))
   "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are EITHER longer than the preceeding note and at least as long as the succeeding note, OR at least min-duration long."
-  #'(lambda (d_offs1 d_offs2 d_offs3)
+  (lambda (d_offs1 d_offs2 d_offs3)
       (or (accent-longer-than-predecessor-ar d_offs1 d_offs2 d_offs3)
 	  (funcall (mk-accent-has-at-least-duration-ar :min-duration min-duration) d_offs2))))
 
@@ -944,7 +944,7 @@ Other arguments are inherited from r-rhythm-rhythm.
 ;; must contain some bug: some notes that should be accents are not recognised
 (defun mk-accent->-prep-AND->=-dur-ar (&key (duration-threshold 1/4))
   "Returns an accent rule for metric-accents or accents-in-other-voice. Accented notes are longer than the preceeding note. Additionally, if the succeeding note is of the same length or longer, then they are at least duration-threshold long to count as accented."
-  #'(lambda (d_offs1 d_offs2 d_offs3)
+  (lambda (d_offs1 d_offs2 d_offs3)
       (destructuring-bind ((dur1 offs1) (dur2 offs2) (dur3 offs3)) (list d_offs1 d_offs2 d_offs3)
 	(when (every #'plusp (list dur1 dur2 dur3)) ; no rests 
 	  (and (< dur1 dur2)
@@ -972,7 +972,7 @@ Other arguments are inherited from r-rhythm-rhythm.
 			   ((:down :up) (0.71 0.29))
 			   ((:down :down) (0.5 0.5))
 			   ))
-	 (found-match (find (mapcar #'(lambda (x)
+	 (found-match (find (mapcar (lambda (x)
 					(cond ((> x 0) :up)
 					      ((= x 0) :equal)
 					      ((< x 0) :down)))
@@ -1028,9 +1028,9 @@ Accent value 0.335 seems to occurs for mere local max and min (or only local max
 Thomassen, J. M. (1982) Melodic accent: Experiments and a tentative model. The Journal of the Acoustical Society of America. 71 (6), 1596–1605."
   (append '(nil nil)
 	  (tu:map-neighbours
-	   #'(lambda (pair1 pair2)
+	   (lambda (pair1 pair2)
 	       (* (second pair1) (first pair2)))
-	   (tu:map-neighbours #'(lambda (p1 p2 p3)
+	   (tu:map-neighbours (lambda (p1 p2 p3)
 				  (thomassen-accents-aux (list p1 p2 p3)))
 			      midi-pitches))
 	  '(nil)))
@@ -1041,7 +1041,7 @@ Thomassen, J. M. (1982) Melodic accent: Experiments and a tentative model. The J
 
 ;;; TODO: Make accent strength an arg of a function that returns the accent rule.
 (defun thomassen-accents-ar (&optional (thomassen-accent-strength 0.4))
-  #'(lambda (n1 n2 n3 n4)
+  (lambda (n1 n2 n3 n4)
       "Accent rule for metric-accents or accents-in-other-voice. Accented notes are melodic accents according to the Thomassen model (Thomassen, 1982). See the documentation of function thomassen-accents for more details on this model and the reference.
 
 NOTE: This is an expensive constraint performance-wise (i.e. the search can take very long): the constraint defines a relation between four consecutive notes, the metric positions (offset value) of the but-last note and the melodic intervals of these four notes. Best use only for small and/or monophonic results.
@@ -1068,7 +1068,7 @@ NOTE: This constraint requires the format :d_offs_m_n for the functions metric-a
 
 ;; Every 6th variable must be equal, resulting in a cycle of length 6
 ;; TODO: generalise with a higher-order fun (a bit challenging to dynamically create the lambda list, perhaps with a new macro?)
-#'(lambda (x1 x2 x3 x4 x5 x6)
+(lambda (x1 x2 x3 x4 x5 x6)
 (= x1 x6)) 
 
 |#
