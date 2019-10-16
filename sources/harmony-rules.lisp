@@ -672,13 +672,13 @@ Other arguments are inherited from r-pitch-pitch.
 			sorted-voices)))))))
 
 
-;; ? TODO: 
-;; ? Add arg: absolution intervals or including neg? -- Do only if actually needed :)
+;; TODO: Reduce rule by reducing code repetition
 (defun min/max-harmonic-interval
     (&key
        (voices '(0 1))
        (min-interval NIL)
        (max-interval NIL)
+       (abs-intervals? T)
        (input-mode :beat) ; options: :beat, :all, :1st-beat, :1st-voice, :at-timepoints
        (combinations :consecutive-voices) ; options: :over-bass, :consecutive-voices, :all-combinations
        (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
@@ -689,20 +689,27 @@ Other arguments are inherited from r-pitch-pitch.
 
 Args: 
   voices (list of ints): the voices to constrain.
+    Internally voice numbers are sorted, assuming higher voice numbers stand for lower pitches (if abs-intervals? is NIL).
   min-interval (number or NIL): minimum interval in semitones. Ignored if NIL.
   max-interval (number or NIL): maximum interval in semitones. Ignored if NIL. 
+  abs-intervals? (Boolean): if T, only absolute intervals are compared, otherwise the interval direction is taken into account as well.
   combinations: Controls whether to constrain only intervals between the voice with highest note number and other voices (:over-bass), between pairs of consecutive voices such as soprano-alto, alto-tenor etc. (:consecutive-voices), or between all voice combinations (:all-combinations).
+
+This rule assumes that the higher the voice number the lower the pitch generally (e.g., for combinations :over-bass, the bass is considered the voice with the highest voice number; and when abs-intervals? is NIL, again the voice number affects the interval direction).
 
 Other arguments are inherited from r-pitch-pitch.
 "
   (tu:flat
    (flet ((rule (pitches)
 	    ;; (format T "min/max-harmonic-interval rule: pitches: ~A" pitches)
-	    (let ((pitch1 (first pitches))
+	    (let ((pitch1 (first pitches)) ;; higher voice ID, assumed lower pitch
 		  (pitch2 (second pitches)))		  
 	      (if (and pitch1 pitch2) ; no rests
-		  (let ((interval (abs (- pitch1 pitch2))))			   
-		    (and (if min-interval 
+		  (let* ((raw-interval (- pitch2 pitch1))
+			 (interval (if abs-intervals?
+				       (abs raw-interval)
+				       raw-interval)))
+		    (and (if min-interval
 			     (<= min-interval interval)
 			     T)
 			 (if max-interval 
