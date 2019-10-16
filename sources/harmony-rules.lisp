@@ -40,23 +40,34 @@
 ;;; Follow harmony rules 
 ;;;
 
-(defun in-harmony? (pitches)
-  "The PC of (first pitches) is in the PCs of (second pitches). (first pitches) can be a chord."
-  (let ((voice-pitch (first pitches))
-	(scale-pitches (second pitches)))
-    (if (and voice-pitch scale-pitches)  ; no rests
-	(let ((scale-pcs (mapcar (lambda (p) (mod p 12)) scale-pitches)))
+(defun in-harmony? (pitches &key (harmony-positions :all))
+  "The PC of (first pitches) is in the PCs of (second pitches). (first pitches) can be a chord.
+
+harmony-positions is a list of positions (0-based chord degrees) in the harmony to take into account, useful, e.g., to control inversions by reducing the allowed positions for the bass to '(0 1). This requires that the pitches in the harmonies domain are sorted accordingly (e.g., '(<root> <third> ...). If set to :all, all harmony tones are taken into account.
+"
+  (let* ((voice-pitch (first pitches))
+	 (harmony-pitches (second pitches))
+	 (harmony-size (length harmony-pitches))
+	 (reduced-harmony-pitches (if (eql harmony-positions :all)
+				      harmony-pitches
+				      (loop for pos in harmony-positions
+					 append (when (>= harmony-size pos) ;; just in case...
+						  (list (nth pos harmony-pitches)))))))
+    (if (and voice-pitch harmony-pitches)  ; no rests
+	(let ((harmony-pcs (mapcar (lambda (p) (mod p 12)) reduced-harmony-pitches)))
 	  (every (lambda (p)
-		     (member (mod p 12) scale-pcs))
+		   (member (mod p 12) harmony-pcs))
 		 ;; handle both individual pitches and chords
 		 (tu:ensure-list voice-pitch)))
 	T)))
+
 
 ;;; only-scale-PCs 
 
 (defun only-scale-PCs 
     (&key
        (voices 2)
+       (timepoints '(0))
        (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice 
        (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
@@ -72,13 +83,15 @@ scale-voice (int, default 0): the voice representing the underlying scale.
 
 Other arguments are inherited from r-pitch-pitch."
   (mapcar (lambda (voice)
-	      (r-pitch-pitch #'in-harmony?
-			     (list voice scale-voice)
-			     '(0)
-			     input-mode
-			     gracenotes?
-			     :pitch
-			     rule-type weight))
+	    (r-pitch-pitch
+	     ;; Wrapping in lambda only for ensuring only a single arg...
+	     (lambda (pitches) (in-harmony? pitches)) 
+	     (list voice scale-voice)
+	     timepoints
+	     input-mode
+	     gracenotes?
+	     :pitch
+	     rule-type weight))
 	  (if (listp voices) voices (list voices))))
 
 
@@ -86,28 +99,32 @@ Other arguments are inherited from r-pitch-pitch."
 
 (defun only-chord-PCs (&key
 			 (voices 2)
+			 (timepoints '(0))
 			 (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
 			 (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+			 (chord-voice 1)
+			 (harmony-positions :all)
 			 (rule-type :true/false) ; options: :true/false :heur-switch
-			 (weight 1)
-			 (chord-voice 1))
+			 (weight 1))
   "Tones (PC) in the given voice must be a member of the underlying chord (its PCs). The chord is represented as a simultaneous chord in another voice (voice 1 by default). I is either given directly to the clusterengine's pitch domain of that scale voice, or using read-harmony-file, or controlled with other constraints on that voice. 
 
 Args: 
-voices (int or list of ints): the voice(s) to which this constraint is applied.
+ - voices (int or list of ints): the voice(s) to which this constraint is applied.
 
 Optional args:
-chord-voice (int, default 1): the voice representing the underlying chord.
+ - chord-voice (int, default 1): the voice representing the underlying chord.
+ - harmony-positions (list of ints or :all): list of positions (chord degrees) that are allowed.  This is useful, e.g., to control inversions by reducing the allowed positions for the bass to '(0 1). This requires that the pitches in the harmonies domain are sorted accordingly (e.g., '(<root> <third> ...). If set to :all, all harmony tones are taken into account. 
 
 Other arguments are inherited from r-pitch-pitch. For example, it is possible to control whether this constraint should be applied to all notes, or only specific notes (input-mode). By default, it is applied to notes starting on a beat."
   (mapcar (lambda (voice)
-	      (r-pitch-pitch #'in-harmony?
-			     (list voice chord-voice)
-			     '(0)
-			     input-mode
-			     gracenotes?
-			     :pitch
-			     rule-type weight))
+	    (r-pitch-pitch (lambda (pitches)
+			     (in-harmony? pitches :harmony-positions harmony-positions))
+			   (list voice chord-voice)
+			   timepoints
+			   input-mode
+			   gracenotes?
+			   :pitch
+			   rule-type weight))
 	  (if (listp voices) voices (list voices))))
 
 
@@ -123,6 +140,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 
 (defun only-spectrum-pitches (&key
 				(voices 2)
+				(timepoints '(0))
 				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
 				(gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
 				(rule-type :true/false) ; options: :true/false :heur-switch
@@ -142,7 +160,7 @@ This rule is very similar to only-chord-PCs, but instead of pitch classes absolu
   (mapcar (lambda (voice)
 	      (r-pitch-pitch #'in-spectrum?
 			     (list voice chord-voice)
-			     '(0)
+			     timepoints
 			     input-mode
 			     gracenotes?
 			     :pitch
