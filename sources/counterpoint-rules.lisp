@@ -23,7 +23,7 @@
   "Voices should not cross, i.e., the pitch of simultaneous note pairs in voices are always sorted in decreasing order.
 
 Arguments are inherited from r-pitch-pitch."
-  (let ((sorted-voices (sort voices #'<)))
+  (let ((sorted-voices (sort (copy-list voices) #'<)))
     (mappend (lambda (voice1 voice2)
 		 (r-pitch-pitch (lambda (pitches)
 				    ;; no rests -- no NILs

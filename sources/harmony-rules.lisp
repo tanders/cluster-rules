@@ -401,7 +401,7 @@ Arguments are inherited from r-pitch-pitch.
 
 TODO: Revise this definition -- can the interplay with unequal-sim-pitches-aux be simplified?
 "
-  (let* ((voices (sort voices #'<))
+  (let* ((voices (sort (copy-list voices) #'<))
 	 (len (length voices))
 	 (rev (reverse voices)))
     (mapcar (lambda (i) 
@@ -556,7 +556,7 @@ Other arguments are inherited from r-pitch-pitch."
 		  (remove-if (lambda (x) (< (getf x :number-subset) 1)) 
 			     (let ((l (length voices))
 				   ;; Just in case...
-				   (sorted-voices (sort voices #'<)))
+				   (sorted-voices (sort (copy-list voices) #'<)))
 			       (loop
 				  for i from 2 to l
 				  for no from (- pitch-number l -2) to pitch-number
@@ -637,7 +637,7 @@ Other arguments are inherited from r-pitch-pitch.
 		    (:exclude-given (not (member interval intervals)))
 		    (:only-given (member interval intervals))))
 		T)))    
-     (let ((sorted-voices (sort voices #'>)))
+     (let ((sorted-voices (sort (copy-list voices) #'>)))
        (case combinations 
 	 (:over-bass 
 	  (let ((bass-voice (first sorted-voices)))
@@ -716,7 +716,7 @@ Other arguments are inherited from r-pitch-pitch.
 			     (<= interval max-interval)
 			     T)))
 		  T))))
-     (let ((sorted-voices (sort voices #'>)))
+     (let ((sorted-voices (sort (copy-list voices) #'>)))
        ;; (format T "min/max-harmonic-interval: sorted-voices: ~A, combinations: ~A, rule-type:~A~%" sorted-voices combinations rule-type)
        (case combinations 
 	 (:over-bass 
