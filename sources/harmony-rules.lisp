@@ -539,7 +539,7 @@ Args:
   rests-mode: If set to :reduce-no, then the number of simultaneous rests is subtracted from pitch-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments pitch-number and condition.
   key (unary function): function expecting a pitch and somehow transforming the pitch. The condition will be applied to results of the key function. Example: if key computes the pitch class, the constraint controls the number of simultaneous pitch classes.
   voices: the list of voices to which the rule is applied.
-  redundant-constraints? (Boolean): If true, redundant constraints with with subsets of voices and with a reduced pitch-number are also applied to cause fails earlier and thus speed up the search. However, if condition is set to :max, then these redundant constraints may also reduce the possible solutions, therefore this can be switched off with this argument.
+  redundant-constraints? (Boolean): If true, redundant constraints with subsets of voices and with a reduced pitch-number are also applied to cause fails earlier and thus speed up the search. However, if condition is set to :max, then these redundant constraints may also reduce the possible solutions, therefore this can be switched off with this argument.
   
 Other arguments are inherited from r-pitch-pitch."
   ;; Improve efficiency with redundant constraints to cause fails earlier:
