@@ -39,5 +39,18 @@
                ;; #+opusmodus "tot" ; Torsten's Opusmodus Tools -- would result in circular dependencies
 	       ;;; NOTE: This library (OpenMusic without the visual programming interface) is still unfinished and not shared. Only a few functions depend on it. I could try to make this some conditional library to load, but for now I better leave it simply out.
 	       ;; "pw"
-	       ))
+	       )
+  :in-order-to ((test-op (test-op #:cluster-rules/tests))))
 
+
+(defsystem #:cluster-rules/tests
+  :depends-on (:cluster-rules :FiveAM)
+  :components ((:module "tests"
+			::components ((:module "unit-tests"
+					       :serial t
+					       :components ((:file "package")
+							    (:file "test-drafts")
+							    )))))
+  :perform (test-op (o s)
+		    (uiop:symbol-call :fiveam '#:run!
+				      (uiop:find-symbol* '#:cluster-rules-tests :cluster-rules/tests))))
