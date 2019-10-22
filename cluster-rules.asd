@@ -49,7 +49,7 @@
 			::components ((:module "unit-tests"
 					       :serial t
 					       :components ((:file "package")
-							    (:file "test-drafts")
+							    (:file "test-collection")
 							    )))))
   :perform (test-op (o s)
 		    (uiop:symbol-call :fiveam '#:run!

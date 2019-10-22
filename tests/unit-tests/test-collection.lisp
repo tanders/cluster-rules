@@ -6,8 +6,13 @@
 
 (asdf:load-system :cluster-rules/tests)
 
-;; (run :cluster-rules/tests :style :spec)
- |#
+(run! 'cluster-rules-tests)
+|#
+
+#|
+;; Generating an html test coverage output and collecting profiling info.
+;; See test file in cluster-engine tests
+|#
 
 (in-package #:cluster-rules/tests)
 
@@ -21,16 +26,17 @@
 
 
 ;; Cluster engine is silent
-(setf ce:*verbose-i/o?* nil)
+(setf *verbose-i/o?* nil)
 
+;; Interactive debugging 
+(setf *on-error* :DEBUG)
+;; (setf *on-error* :BACKTRACE)
+;; (setf *on-error* NIL)
+(setf *on-failure* :debug)
 
-#|
-;; NOTE: Not really needed...
-(defun full-test ()
-  "Run all tests."
-  (run! 'cluster-rules-tests))
-; (full-test)
-|#
+;; TMP: reduce number of trials for speeding up during test developments
+(setf *num-trials* 10)
+;; (setf *num-trials* 100)
 
 
 ;; TODO: Avoid code dublication (these defs also in cluster engine test)
@@ -69,18 +75,41 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;  Harmony rules tests
+;;;  
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def-suite cluster-rules-tests
     :description "The top-level suite of all Cluster Rules tests.")
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Profile rules
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def-suite profile-rules-tests
+    :description "Testing profile rules."
+    :in cluster-rules-tests)
+
+(in-suite profile-rules-tests)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Harmony rules
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (def-suite harmony-rules-tests
     :description "Testing harmony rules etc."
     :in cluster-rules-tests)
 
 (in-suite harmony-rules-tests)
+
+
 
 
 
