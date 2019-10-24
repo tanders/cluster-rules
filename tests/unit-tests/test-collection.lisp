@@ -4,6 +4,7 @@
 ;; ASDF interface for running all tests
 (asdf:test-system :cluster-rules)
 
+(asdf:load-system :cluster-engine/tests)
 (asdf:load-system :cluster-rules/tests)
 
 (run! 'cluster-rules-tests)
@@ -75,15 +76,38 @@
 
 ;; TODO: only-scale-pcs
 
+
 ;; TODO: only-chord-pcs
 
-;; TODO: number-of-sim-PCs
 
-;; TODO: number-of-sim-pitches
+#|
+;; BUG: currently example tests only two first voices because of bug in test-harmonic-constraint
+(test-harmonic-constraint number-of-sim-PCs
+  "Testing number-of-sim-PCs for three voices."
+  (cr:number-of-sim-PCs :voices '(0 1 2) :pc-number 3 :rests-mode :reduce-no)
+  (lambda (pitches)
+    (= (length (remove-duplicates (tu:pitch->pc pitches)))
+       (length pitches)))
+  :voice-number 3)
+|#
+
+
+#|
+;; BUG: Test fails, because test-harmonic-constraint is not yet really generalised for an arbitrary voice number
+(test-harmonic-constraint number-of-sim-pitches
+  "Testing number-of-sim-pitches for three voices."
+  (cr:number-of-sim-pitches :voices '(0 1 2) :pitch-number 3 :rests-mode :reduce-no :condition :min)
+  (lambda (pitches)
+    (= (length (remove-duplicates pitches))
+       3))
+  :voice-number 3)
+|#
+
 
 ;; TODO: stepwise-non-chord-tone-resolution
 
 ;; TODO: chord-tone-before/after-rest
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -97,7 +121,46 @@
 
 (in-suite conterpoint-rules-tests)
 
-;; TODO: no-voice-crossing
+(test-harmonic-constraint no-voice-crossing
+  "Testing no-voice-crossing: no voice crossing between voices 1 and 2."
+  (no-voice-crossing :voices '(0 1))
+  (lambda (pitches)
+    (let ((p1 (first pitches))
+	  (p2 (second pitches)))
+      (when* (and p1 p2)
+	(>= p1 p2)))))
+
+#|
+;; TMP: Long form of the above
+(test no-voice-crossing
+  "Testing no-voice-crossing: no voice crossing between voices 1 and 2."
+  (for-all ((no-of-variables (gen-integer :min 1 :max 15))
+	    (rhythm-domain (gen-selection :length (gen-integer :min 1 :max (length *rhythm-domain-template*))
+					  :elements *rhythm-domain-template*))
+	    (pitch-domain (gen-selection :length (gen-integer :min 2 :max (length *pitch-domain-template*))
+					 :elements *pitch-domain-template*)))
+    (let* ((voices-solution (get-keyword-voices
+			     (cluster-shorthand no-of-variables
+						(no-voice-crossing :voices '(0 1))
+						(list
+						 ;; voice 1
+						 rhythm-domain pitch-domain
+						 ;; voice 2
+						 rhythm-domain pitch-domain))))
+	   (first-voice (first voices-solution))
+	   (first-voice-pitches (mapcar #'get-pitch first-voice))	     
+	   (matching-2nd-voice-pitches (mapcar #'get-pitch
+					       (get-events-time-points (second voices-solution)
+								       (mapcar #'get-start first-voice))))
+	   (sim-pitch-pairs (tu:mat-trans (list first-voice-pitches matching-2nd-voice-pitches))))
+      (is (every (lambda (pitches)
+		   (let ((p1 (first pitches))
+			 (p2 (second pitches)))
+		     (when* (and p1 p2)
+		       (>= p1 p2))))
+		 sim-pitch-pairs)))))
+|#
+
 
 
 
