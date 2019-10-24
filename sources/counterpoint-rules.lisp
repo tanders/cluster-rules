@@ -25,15 +25,17 @@
 Arguments are inherited from r-pitch-pitch."
   (let ((sorted-voices (sort (copy-list voices) #'<)))
     (mappend (lambda (voice1 voice2)
-		 (r-pitch-pitch (lambda (pitches)
-				    ;; no rests -- no NILs
-				    (apply #'>= (remove NIL pitches))) 
-				(list voice1 voice2)
-				'(0)
-				input-mode
-				gracenotes?
-				:pitch
-				rule-type weight))
+	       (r-pitch-pitch (lambda (pitches)
+				(let ((p1 (first pitches))
+				      (p2 (second pitches)))
+				  (when* (and p1 p2) ; no rests
+				    (>= p1 p2))))
+			      (list voice1 voice2)
+			      '(0)
+			      input-mode
+			      gracenotes?
+			      :pitch
+			      rule-type weight))
 	     (butlast sorted-voices)
 	     (rest sorted-voices))))
 
@@ -57,24 +59,23 @@ Other arguments are inherited from r-pitch-pitch."
   (map-pairwise
    (lambda (voice1 voice2)
        (r-pitch-pitch (lambda (pitches1 pitches2)
-			  (if (every (lambda (p) p) (append pitches1 pitches2))  ; no rests -- no NILs
-			      (let* ((pitch1a (first pitches1)) ; 1st and 2nd pitch of voice A and voice B
-				     (pitch1b (second pitches1))
-				     (pitch2a (first pitches2))
-				     (pitch2b (second pitches2))
-				     (harm-interval2 (mod (abs (- pitch2b pitch2a)) 12)) 
-				     (matchingInterval2? (member harm-interval2 intervals)))
-				(case mode
-				  (:open-and-hidden (if matchingInterval2? 
-							(let ((directionA (signum (- pitch1a pitch2a)))  
-							      (directionB (signum (- pitch1b pitch2b))))
-							  (/= directionA directionB))
-							T))
-				  (:open (if matchingInterval2? 
-					     (let ((harm-interval1 (mod (abs (- pitch1b pitch1a)) 12))) 
-					       (/= harm-interval1 harm-interval2))
-					     T))))
-			      T))	     
+			(when* (every (lambda (p) p) (append pitches1 pitches2))  ; no rests -- no NILs
+			  (let* ((pitch1a (first pitches1)) ; 1st and 2nd pitch of voice A and voice B
+				 (pitch1b (second pitches1))
+				 (pitch2a (first pitches2))
+				 (pitch2b (second pitches2))
+				 (harm-interval2 (mod (abs (- pitch2b pitch2a)) 12)) 
+				 (matchingInterval2? (member harm-interval2 intervals)))
+			    (case mode
+			      (:open-and-hidden (if matchingInterval2? 
+						    (let ((directionA (signum (- pitch1a pitch2a)))  
+							  (directionB (signum (- pitch1b pitch2b))))
+						      (/= directionA directionB))
+						    T))
+			      (:open (if matchingInterval2? 
+					 (let ((harm-interval1 (mod (abs (- pitch1b pitch1a)) 12))) 
+					   (/= harm-interval1 harm-interval2))
+					 T))))))
 		      (list voice1 voice2)
 		      '(0)
 		      :all
