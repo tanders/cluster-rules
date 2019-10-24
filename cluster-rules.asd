@@ -20,17 +20,20 @@
   :licence "GNU General Public License, Version 3"
   :version "0.1"
   ;; :default-component-class ccl::pwgl-source-file
-  :serial t ;; the dependencies are linear.
-  :components ((:file "sources/package")
-	       (:file "sources/utils")
-	       ;; depends on ENP
-	       ;; (:file "sources/score")
-	       (:file "sources/rhythm-rules")
-	       (:file "sources/melody-rules")
-	       (:file "sources/harmony-rules")
-	       (:file "sources/counterpoint-rules")
-	       ;; (:file "sources/menus")
-	       )
+  ;; :serial t ;; the dependencies are linear.
+  :components ((:module "sources"
+			:serial t
+			:components ((:file "package")
+				     (:file "macros")
+				     (:file "utils")
+				     ;; depends on ENP
+				     ;; (:file "score")
+				     (:file "rhythm-rules")
+				     (:file "melody-rules")
+				     (:file "harmony-rules")
+				     (:file "counterpoint-rules")
+				     ;; (:file "menus")
+				     )))
   :depends-on (
                "ta-utilities" ;; e.g., tu:dx->x, tu:mat-trans, but so far only in #+opusmodus code (melody-rules.lisp)
 	       "fenv"
@@ -43,7 +46,8 @@
 
 
 (defsystem #:cluster-rules/tests
-  :depends-on (:cluster-rules :FiveAM)
+  ;; Dependency :cluster-engine/tests includes :FiveAM, and :cluster-engine/tests also defines utilities for defining Cluster Engine tests
+  :depends-on (:cluster-rules :cluster-engine/tests) 
   :components ((:module "tests"
 			::components ((:module "unit-tests"
 					       :serial t

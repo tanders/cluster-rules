@@ -15,7 +15,9 @@
 (defpackage :cluster-rules
   (:nicknames :rule :cr)
   (:use #:common-lisp #:cluster-engine) ;  #:pw
-  (:export #:follow-timed-profile-hr ; profile
+  (:export #:when* ; macro
+	   ; profile
+	   #:follow-timed-profile-hr 
 	   #:follow-profile-hr #:repetitions-follow-profile
 	   #:follow-interval-profile
 	   #:rhythm-profile-BPF-hr
