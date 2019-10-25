@@ -4,6 +4,11 @@
 ;; ASDF interface for running all tests
 (asdf:test-system :cluster-rules)
 
+(progn
+  (asdf:load-system :cluster-rules/tests)
+  (run! 'rhythmic-domain))
+
+
 (asdf:load-system :cluster-engine/tests)
 (asdf:load-system :cluster-rules/tests)
 
@@ -38,7 +43,36 @@
 (setf fiveam:*num-trials* 10)
 ;; (setf *num-trials* 100)
 
+(def-suite cluster-rules-tests
+    :description "The top-level suite of all Cluster Rules tests.")
+(in-suite cluster-rules-tests)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  TMP:
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; ;; TODO: This is not working: only simple cases are generated with such conditions. I better create a large list of possible values explicitly and then use gen-selection on that.
+;; ;; TODO: turn rhythmic-domain generation into a higher-level generator, and the guard into some abstraction even-motif?
+;; (test rhythmic-domain
+;;   (for-all ((rhythmic-domain (gen-list :length (gen-integer :min 1 :max 5) 
+;; 				       :elements (gen-list :length (gen-integer :min 1 :max 5)
+;; 							   :elements (gen-ratio)))
+;; 			     ;; Restrict to rhythmic motifs of even duration
+;; 			     (every (lambda (motif)
+;; 				      (let ((motif-dur (apply #'+ (mapcar #'abs motif))))
+;; 					(member motif-dur '(1 1/2 1/4 1/8 1/16))
+;; 					;; (and (member (numerator motif-dur) '(1 2 4))
+;; 					;;      (member (denominator motif-dur) '(1 2 4))
+;; 					;;      (<= motif-dur 1))
+;; 					))
+;; 				    rhythmic-domain)))
+;;     (format T "Rhythmic domain: ~A~%" rhythmic-domain)
+;;     (is (eql T T))
+;;     ))
+
+ 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -46,13 +80,9 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-suite cluster-rules-tests
-    :description "The top-level suite of all Cluster Rules tests.")
-
 (def-suite profile-rules-tests
     :description "Testing profile rules."
     :in cluster-rules-tests)
-
 (in-suite profile-rules-tests)
 
 ;; TODO: follow-profile-hr with intervals and absolute pitches -- this seems to largely work, but sometimes there are surprising deviations
@@ -80,34 +110,36 @@
 ;; TODO: only-chord-pcs
 
 
-#|
-;; BUG: currently example tests only two first voices because of bug in test-harmonic-constraint
-(test-harmonic-constraint number-of-sim-PCs
+(test number-of-sim-PCs
   "Testing number-of-sim-PCs for three voices."
-  (cr:number-of-sim-PCs :voices '(0 1 2) :pc-number 3 :rests-mode :reduce-no)
-  (lambda (pitches)
-    (= (length (remove-duplicates (tu:pitch->pc pitches)))
-       (length pitches)))
-  :voice-number 3)
-|#
+  (test-harmonic-constraint 
+      (cr:number-of-sim-PCs :voices '(0 1 2) :pc-number 3 :rests-mode :reduce-no)
+    (lambda (pitches)
+      (let ((rest-no (length (remove-if #'identity pitches))) ;; filter out any non-NILs
+	    (pc-no (length (remove-duplicates (tu:pitch->pc (remove NIL pitches))))))
+	(= pc-no
+	   (- (length pitches) rest-no))))
+    :voice-number 3
+    :pitch-domain (gen-selection :length (gen-integer :min 5 :max (length *pitch-domain-template*))
+				 :elements *pitch-domain-template*)))
 
 
-#|
-;; BUG: Test fails, because test-harmonic-constraint is not yet really generalised for an arbitrary voice number
-(test-harmonic-constraint number-of-sim-pitches
+(test number-of-sim-pitches
   "Testing number-of-sim-pitches for three voices."
-  (cr:number-of-sim-pitches :voices '(0 1 2) :pitch-number 3 :rests-mode :reduce-no :condition :min)
-  (lambda (pitches)
-    (= (length (remove-duplicates pitches))
-       3))
-  :voice-number 3)
-|#
+  (test-harmonic-constraint 
+      (cr:number-of-sim-pitches :voices '(0 1 2) :pitch-number 3 :rests-mode :reduce-no :condition :min)
+    (lambda (pitches)
+      (let ((rest-no (length (remove-if #'identity pitches))) ;; filter out any non-NILs
+	    (pitch-no (length (remove-duplicates (remove NIL pitches)))))
+	(= pitch-no (- 3 rest-no))))
+    :voice-number 3
+    :pitch-domain (gen-selection :length (gen-integer :min 5 :max (length *pitch-domain-template*))
+				 :elements *pitch-domain-template*)))
 
 
 ;; TODO: stepwise-non-chord-tone-resolution
 
 ;; TODO: chord-tone-before/after-rest
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -121,14 +153,14 @@
 
 (in-suite conterpoint-rules-tests)
 
-(test-harmonic-constraint no-voice-crossing
+(test no-voice-crossing
   "Testing no-voice-crossing: no voice crossing between voices 1 and 2."
-  (no-voice-crossing :voices '(0 1))
-  (lambda (pitches)
-    (let ((p1 (first pitches))
-	  (p2 (second pitches)))
-      (when* (and p1 p2)
-	(>= p1 p2)))))
+  (test-harmonic-constraint (no-voice-crossing :voices '(0 1))
+    (lambda (pitches)
+      (let ((p1 (first pitches))
+	    (p2 (second pitches)))
+	(when* (and p1 p2)
+	  (>= p1 p2))))))
 
 #|
 ;; TMP: Long form of the above
