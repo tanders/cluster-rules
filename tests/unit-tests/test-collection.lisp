@@ -6,7 +6,7 @@
 
 (progn
   (asdf:load-system :cluster-rules/tests)
-  (run! 'rhythmic-domain))
+  (run! 'min/max-harmonic-interval_no-pitch-repetition))
 
 
 (asdf:load-system :cluster-engine/tests)
@@ -41,7 +41,8 @@
 
 ;; TMP: reduce number of trials for speeding up during test developments
 (setf fiveam:*num-trials* 10)
-;; (setf *num-trials* 100)
+;; (setf fiveam:*num-trials* 100)
+;; (setf fiveam:*num-trials* 1000)
 
 (def-suite cluster-rules-tests
     :description "The top-level suite of all Cluster Rules tests.")
@@ -102,9 +103,84 @@
 
 (in-suite harmony-rules-tests)
 
-;; TODO: min/max-harmonic-interval (possibly multiple test cases)
+;; Bass is voice with highest voice number
+(test min/max-harmonic-interval_no-voice-crossing-below-bass_no-solution
+  "Testing min/max-harmonic-interval: No voice crossing between bass (highest voice number) and other voices -- CSP resulting in :no-solution."
+  (for-all ((stop-time (gen-ratio :numerator (gen-integer :min 1 :max 8)
+				  :denominator (gen-select-one :candidates '(1 2 4))))
+	    (rhythm-domain (gen-selection
+			    :length (gen-integer :min 2 :max 8)
+			    :elements '((1/16) (1/8) (3/16) (1/4) (3/8) (1/2) (3/4) (1)))))
+    (let* ((no-of-variables 1000)
+	   (higher-pitch-domain '((60)))
+	   ;; NOTE: Domain intended to fail -- above domain of higher voices
+	   (bass-pitch-domain '((62)))
+	   (solution (cluster-shorthand no-of-variables
+					(ce:rules->cluster
+					 (ce:stop-rule-time '(0 1 2) stop-time :and)
+					 ;; Actual rule
+					 (cr:min/max-harmonic-interval :min-interval 0 :voices '(0 1 2) :input-mode :all
+								       :combinations :over-bass :abs-intervals? NIL))
+					(list rhythm-domain higher-pitch-domain
+					      rhythm-domain higher-pitch-domain
+					      rhythm-domain bass-pitch-domain))))
+      (is (equal solution :no-solution)))))
+
+(test min/max-harmonic-interval_no-voice-crossing-below-bass
+  "Testing min/max-harmonic-interval: No voice crossing between bass (highest voice number) and other voices.."
+  (test-harmonic-constraint
+      (cr:min/max-harmonic-interval :min-interval 0 :voices '(0 1 2 3) :input-mode :all
+				    :combinations :over-bass :abs-intervals? NIL)
+    (lambda (pitches)
+      (let ((bass-pitch (tu:last-element pitches)))
+	(every (lambda (higher-pitch)
+		 (when* (and higher-pitch bass-pitch) ; skip rests
+		   (<= bass-pitch higher-pitch)))
+	       (butlast pitches))))
+    :voice-number 4))
+
+
+(test min/max-harmonic-interval_no-pitch-repetition_no-solution
+  "Testing min/max-harmonic-interval: no pitch repetition (and no voice crossing) ensured by constraining interval of at least semitone between voices -- CSP resulting in :no-solution."
+  (for-all ((rhythm-domain (gen-selection
+			    :length (gen-integer :min 2 :max 4)
+			    :elements '((1/16) (1/8) (3/16) (1/4) (3/8) (1/2) (3/4) (1)))))
+    (let* ((stop-time 2)
+	   (no-of-variables 1000)
+	   ;; NOTE: intends to fail: simple pitch in all pitch domains does not allow one voice be higher than other voice
+	   (pitch-domain '((62))) 
+	   (solution (cluster-shorthand no-of-variables
+					(ce:rules->cluster
+					 (ce:stop-rule-time '(0 1 2) stop-time :and)
+					 ;; Actual rule
+					 (cr:min/max-harmonic-interval :min-interval 1 :voices '(0 1 2) :input-mode :all
+								       :combinations :consecutive-voices :abs-intervals? NIL))
+					(list rhythm-domain pitch-domain
+					      rhythm-domain pitch-domain
+					      rhythm-domain pitch-domain))))
+      (is (equal solution :no-solution)))))
+
+
+(test min/max-harmonic-interval_no-pitch-repetition
+  "Testing min/max-harmonic-interval: no pitch repetition (and no voice crossing) ensured by constraining interval of at least semitone between voices."
+  (test-harmonic-constraint
+      (cr:min/max-harmonic-interval :min-interval 1 :voices '(0 1 2) :input-mode :all
+				    :combinations :consecutive-voices :abs-intervals? NIL)
+    (lambda (pitches)
+      (tu:map-neighbours (lambda (p1 p2)
+			   (when* (and p1 p2) ; skip rests
+			     (> p1 p2)))
+			 pitches))
+    :voice-number 3
+    :stop-time (gen-ratio :numerator (gen-integer :min 2 :max 3)
+			  :denominator (gen-select-one :candidates '(1 2)))
+    :pitch-domain (gen-selection :length (gen-integer :min 5 :max 10)
+				 :elements *pitch-domain-template*)))
+
 
 ;; TODO: only-scale-pcs
+
+
 
 
 ;; TODO: only-chord-pcs
