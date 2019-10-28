@@ -20,21 +20,6 @@
 
 (in-package :cluster-rules)
 
-;;;
-;;; General defs
-;;;
-
-#|
-(ccl::add-box-type :gracenotes?-include-mbox 
-		   ;; TODO: this is probably an unnecessary nesting of ccl::mk-menu-subview
-		   `(ccl::mk-menu-subview :menu-list ,(ccl::mk-menu-subview :menu-list '(":include-gracenotes" ":exclude-gracenotes")) :value 1))
-
-(ccl::add-box-type :gracenotes?-exclude-mbox 
-		   ;; TODO: this is probably an unnecessary nesting of ccl::mk-menu-subview
-		   `(ccl::mk-menu-subview :menu-list ,(ccl::mk-menu-subview :menu-list '(":include-gracenotes" ":exclude-gracenotes")) :value 1))
-|#
-
-
 
 ;;;
 ;;; Follow harmony rules 
