@@ -458,8 +458,8 @@ Note: If this rule is used with pitch motifs, then only the selection of the 1st
      (lambda (profile-voice)
 	 (let* ((profile (first profile-voice))
 		(voice (second profile-voice))
-		(my-profile (make-profile-vector profile n))
-		(profile-length (length my-profile)))
+		(profile-vec (make-profile-vector profile n :pitch))
+		(profile-length (length profile-vec)))
 	   (R-pitches-one-voice
 	    (lambda (xs) 
 		"Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
@@ -468,8 +468,8 @@ Note: If this rule is used with pitch motifs, then only the selection of the 1st
 		  (if (and (>= l 2)
 			   (or (= n 0) (<= l n))
 			   (<= l profile-length))
-		      (let ((profile-repetition? (= (elt my-profile (- l 2))
-						    (elt my-profile (- l 1))))
+		      (let ((profile-repetition? (= (elt profile-vec (- l 2))
+						    (elt profile-vec (- l 1))))
 			    (solution-repetition? (apply #'= (last xs 2))))
 			(ecase strictness
 			  (:avoid-repetition (if (not profile-repetition?)
