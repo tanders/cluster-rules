@@ -461,6 +461,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 			    (condition :min) ; options: :min, :equal, :max
 			    (rests-mode :reduce-no) ; options: :reduce-no, :ignore
 			    (voices '(0 1))
+			    (redundant-constraints? :voice-accumulation)
 			    (timepoints '(0))
 			    (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
 			    (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
@@ -471,8 +472,8 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 Args: 
 See constrain-number-of-sim-pitches"
   (constrain-number-of-sim-pitches :pitch-number PC-number :condition condition :rests-mode rests-mode :voices voices
-				   :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
-				   :rule-type rule-type :weight weight
+				   :redundant-constraints? redundant-constraints? :timepoints timepoints :input-mode input-mode
+				   :gracenotes? gracenotes? :rule-type rule-type :weight weight
 				   ;; Unique element of this rule
 				   :key (lambda (p) (mod p 12))))
 
@@ -482,6 +483,7 @@ See constrain-number-of-sim-pitches"
 				(condition :min) ; options: :min, :equal, :max
 				(rests-mode :reduce-no) ; options: :reduce-no, :ignore
 				(voices '(0 1))
+				(redundant-constraints? :voice-accumulation)
 				(timepoints '(0))
 				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
 				(gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
@@ -494,8 +496,8 @@ This function does the same as constrain-number-of-sim-pitches, but is kept for 
 Args: 
 See constrain-number-of-sim-pitches"
   (constrain-number-of-sim-pitches :pitch-number pitch-number :condition condition :rests-mode rests-mode :voices voices
-				   :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
-				   :rule-type rule-type :weight weight
+				   :redundant-constraints? redundant-constraints? :timepoints timepoints :input-mode input-mode
+				   :gracenotes? gracenotes? :rule-type rule-type :weight weight
 				   ;; Unique element of this rule
 				   :key #'identity))
 
