@@ -20,14 +20,15 @@
 
 
 (defun cluster-engine (no-of-variables rules metric-domain list-of-domains
-                      &key (rnd? T) (debug? nil))
+                      &key (rnd? T) (debug? nil) (forward-rule :fwd-rule6B))
   "Slight variant of function cluster-engine::clusterengine where the order of variables is rearranged for shorter function calls. See the orig definition for further documentation."
   (cluster-engine::clusterengine no-of-variables
                                  rnd?
                                  debug?
                                  rules
                                  metric-domain
-                                 list-of-domains))
+                                 list-of-domains
+				 :forward-rule forward-rule))
 
 
 
