@@ -352,20 +352,13 @@ As a heuristic, larger return values mean preferred domain values. Essentially, 
   "Heuristic rule. The pitches or rhythmic values of the resulting music follow the given profile.
 
 Args:
-
-- profile (a list of numbers, a fenv, or -- when using Opusmodus -- an OMN sequence, or a list of any of these): Specifies the profile to be followed. In case an OMN sequence contains chords, then only the first chord note is extracted. In case a fenv is given, then that fenv is sampled (n equidistant samples) and the y values are used. If multiple profiles are given, they are applied to the given voices in the same order.  
-
-- voices (int or list of ints): The voice(s) to which the constraint is applied. 
-
-- n (int): The first n notes are affected (if n is greater than the length of profile, then that length is taken). If 0, then n is disregarded and the full length of the profile is used. NOTE: if the profile is a fenv then make sure n is greater than 0.
-
-- mode: Select whether to constrain either the rhythmic values (:rhythm) or the pitches (:pitch). If you want to constrain both, then simply use two instances of this rule with different mode settings.
-
-- constrain: Select whether pitch/rhythm should follow the profile directly, or whether pitch/rhythm intervals should follow the intervals between profile, or pitch/rhythm directions should follow the directions of profile intervals.
-
-- start (int): At which note position to start applying this rule (zero-based). 
-
-- weight-offset (int): offset to the heuristic weight of this rule (the higher the offset, the more important this rule becomes compared with other heuristic rules).
+  - profile (a list of numbers, a fenv, or -- when using Opusmodus -- an OMN sequence, or a list of any of these): Specifies the profile to be followed. In case an OMN sequence contains chords, then only the first chord note is extracted. In case a fenv is given, then that fenv is sampled (n equidistant samples) and the y values are used. If multiple profiles are given, they are applied to the given voices in the same order.  
+  - voices (int or list of ints): The voice(s) to which the constraint is applied. 
+  - n (int): The first n notes are affected (if n is greater than the length of profile, then that length is taken). If 0, then n is disregarded and the full length of the profile is used. NOTE: if the profile is a fenv then make sure n is greater than 0.
+  - mode: Select whether to constrain either the rhythmic values (:rhythm) or the pitches (:pitch). If you want to constrain both, then simply use two instances of this rule with different mode settings.
+  - constrain: Select whether pitch/rhythm should follow the profile directly, or whether pitch/rhythm intervals should follow the intervals between profile, or pitch/rhythm directions should follow the directions of profile intervals.
+  - start (int): At which note position to start applying this rule (zero-based). 
+  - weight-offset (int): offset to the heuristic weight of this rule (the higher the offset, the more important this rule becomes compared with other heuristic rules).
 
 
 Note: If this rule is used with pitch/rhythm motifs, then only the selection of the 1st motif note is controlled by the rule (in future it would be nice to control the average pitch/rhythm of motifs, but that would require different rule applicators).
