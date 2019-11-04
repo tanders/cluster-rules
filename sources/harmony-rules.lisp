@@ -510,7 +510,7 @@ See constrain-number-of-sim-pitches"
 					  (rests-mode :reduce-no) ; options: :reduce-no, :ignore
 					  (key #'identity)
 					  (voices '(0 1))
-					  (redundant-constraints? T)
+					  (redundant-constraints? :voice-accumulation)
 					  (timepoints '(0))
 					  (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
 					  (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
@@ -524,8 +524,9 @@ Args:
   rests-mode: If set to :reduce-no, then the number of simultaneous rests is subtracted from pitch-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments pitch-number and condition.
   key (unary function): function expecting a pitch and somehow transforming the pitch. The condition will be applied to results of the key function. Example: if key computes the pitch class, the constraint controls the number of simultaneous pitch classes.
   voices: the list of voices to which the rule is applied.
-  redundant-constraints? (Boolean): If true, redundant constraints with subsets of voices and with a reduced pitch-number are also applied to cause fails earlier and thus speed up the search. However, if condition is set to :max, then these redundant constraints may also reduce the possible solutions, therefore this can be switched off with this argument.
-  
+  redundant-constraints? (:all-voice-combinations, :voice-accumulation or NIL): If non-NIL, redundant constraints with subsets of voices and with a reduced pitch-number are also applied to cause fails earlier and thus speed up the search. The setting :voice-accumulation applies redundant constraints for the combinations (voice1 voice2), (voice1 voice2 voice3) ..., but not (voice2 voice3) etc. This is suitable when voices are visited in increasing order of voice IDs (Cluster Engine engine variable), which is the Cluster Engine default. The setting :all-voice-combinations applies redundant constraints to all possible voice subsets instead.
+    If NIL, no redundant constraints are applied. If condition is set to :max, then redundant constraints may also reduce the possible solutions, therefore this can be switched off.
+
 Other arguments are inherited from r-pitch-pitch."
   ;; Improve efficiency with redundant constraints to cause fails earlier:
   ;; internally also call constrain-number-of-sim-pitches-aux with subsets of voices and with a reduced pitch-number
@@ -541,13 +542,32 @@ Other arguments are inherited from r-pitch-pitch."
 		  (remove-if (lambda (x) (< (getf x :number-subset) 1)) 
 			     (let ((l (length voices))
 				   ;; Just in case...
-				   (sorted-voices (sort (copy-list voices) #'<)))
-			       (loop
-				  for i from 2 to l
-				  for no from (- pitch-number l -2) to pitch-number
-				  ;; a bit inefficient calling subseq multiple times, but fine for a short voices list
-				  collect `(:voices-subset ,(subseq sorted-voices 0 i)
-					    :number-subset ,no)))))
+				   (sorted-voices (sort (copy-list voices) #'<))
+				   (min-voice-combination-no 2))
+			       (case redundant-constraints?
+				 ;; TODO: Consider with the argument redundant-constraints? (or renamed redundant-constraints) to be able switch between different cases of combinations of redundant constraints.
+				 ;;
+				 ;; Adding redundant constraints for all possible voice subset combinations
+				 (:all-voice-combinations
+				  (loop
+				     for end from min-voice-combination-no to l
+				     ;; a bit inefficient calling subseq multiple times, but fine for a short voices list
+				     append (loop
+					       for start from 0 to (- end min-voice-combination-no)
+					       ;; for no from (- pitch-number l -2) to pitch-number		    
+					       ;; for no = (+ pitch-number (- end start))
+					       for no = (+ pitch-number
+							   (- (- end start) (* 2 min-voice-combination-no)))
+					       collect `(:voices-subset ,(subseq sorted-voices start end)
+									:number-subset ,no))))
+				 (:voice-accumulation
+				  (loop
+				     for i from min-voice-combination-no to l
+				     for no from (- pitch-number l (- min-voice-combination-no)) to pitch-number
+				     ;; a bit inefficient calling subseq multiple times, but fine for a short voices list
+				     collect `(:voices-subset ,(subseq sorted-voices 0 i)
+							      :number-subset ,no)))
+				  ))))
       (constrain-number-of-sim-pitches-aux
        :pitch-number pitch-number :condition condition :rests-mode rests-mode :key key :voices voices
        :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
