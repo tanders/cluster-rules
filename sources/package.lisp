@@ -49,7 +49,8 @@
 	   ;; harmony
 	   #:only-scale-PCs #:only-chord-PCs #:only-spectrum-pitches #:long-notes-chord-PCs #:chord-tone-before/after-rest
 	   #:chord-PC-at-1st-tone-HACK #:stepwise-non-chord-tone-resolution #:chord-tone-follows-non-chord-tone
-	   #:unequal-sim-pitches #:unequal-sim-PCs #:number-of-sim-PCs #:number-of-sim-pitches #:set-harmonic-intervals #:min/max-harmonic-interval
+	   #:unequal-sim-pitches #:unequal-sim-PCs #:number-of-sim-PCs #:number-of-sim-pitches #:set-harmonic-intervals
+	   #:min/max-harmonic-interval #:restrict-low-harmonic-intervals
 	   #:tintinnabuli-M-voice #:tintinnabuli-T-voice
 	   #:set-chord-at-positions #:set-root-at-positions
 	   #:limit-voice-leading-distance

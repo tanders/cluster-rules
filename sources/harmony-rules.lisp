@@ -740,6 +740,54 @@ Other arguments are inherited from r-pitch-pitch.
 			sorted-voices))
 	 )))))
 
+
+;; Values stem from Aiva's music-engine: constant LOWEST_INTERVALS in constants.py
+(defparameter *lowest-permitted-harmonic-intervals_Aiva* '(0 50 49 46 44 44 45 32 39 39 39 39)
+  "Encoding of lowest harmonic intervals (within an octave) that permitted. The position encodes the interval, and the value the lowest pitch (MIDI keynumber) above which this interval is permitted. Example: a minor second (position 1) cannot occur below a D3 (MIDI keynumber 50). These are the values used by music-engine.")
+
+(defparameter *lowest-permitted-harmonic-intervals_orig* '(0 52 51 48 46 46 47 34 41 41 41 41)
+  "Encoding of lowest harmonic intervals (within an octave) that permitted. The position encodes the interval, and the value the lowest pitch (MIDI keynumber) above which this interval is permitted. Example: a minor second (position 1) cannot occur below a D3 (MIDI keynumber 50). These are the original values from Brad's teacher. See also https://www.sweetwater.com/insync/low-interval-limit/")
+
+(defun restrict-low-harmonic-intervals (&key
+					  (voices '(0 1))
+					  (lowest-harmonic-intervals *lowest-permitted-harmonic-intervals_Aiva*)
+					  (input-mode :all) ; options: :beat, :all, :1st-beat, :1st-voice, :at-timepoints
+					  (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
+					  (timepoints '(0))
+					  (rule-type :true/false) ; options: :true/false :heur-switch
+					  (weight 1))
+  "Reduce roughness by limiting the interval size possible between lower pitches (avoid/reduce critical band roughness). Rule constraints intervals between consecutive voices to not go below the pitch-dependent interval limits encoded by argument LOWEST-HARMONIC-INTERVALS.
+
+Usually, voices with lower ID are assumed at higher pitch and there is no voice crossing (not a strict requirement, but with too much voice crossing it will not be sufficient to check only consecutive voices).
+
+* Arguments:
+  - voices (list of ints): the voices to constrain.
+  - lowest-harmonic-intervals (list of 12 ints): encoded of lowest harmonic intervals (within an octave) that permitted. See doc of *lowest-permitted-harmonic-intervals_Aiva* for further details.
+
+Other arguments are inherited from r-pitch-pitch.
+"
+  (let ((max-interval-limit (apply #'max lowest-harmonic-intervals))
+	(lowest-intervals (apply #'vector lowest-harmonic-intervals)))
+    (let ((sorted-voices (sort (copy-list voices) #'>)))
+      (mapcar (lambda (voice1 voice2)
+		(r-pitch-pitch (lambda (pitches)
+				 (let ((pitch1 (first pitches)) ;; higher voice ID, assumed lower pitch
+				       (pitch2 (second pitches)))
+				   (when* (and pitch1 pitch2 ; no rests
+					       (<= (min pitch1 pitch2) ; lower pitches
+						   max-interval-limit))
+				     (let ((interval (abs (- pitch2 pitch1))))
+				       (when* (< 0 interval 12) ; only intervals 1-11
+					 (>= (min pitch1 pitch2) (elt lowest-intervals interval)))))))
+			       (list voice1 voice2)
+			       timepoints
+			       input-mode
+			       gracenotes?
+			       :pitch
+			       rule-type weight)) 
+	      (butlast sorted-voices) (rest sorted-voices)))))
+
+
 	  
 ;;
 ;; Tintinnabuli rules 
