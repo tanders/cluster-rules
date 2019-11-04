@@ -17,7 +17,7 @@
 (defun no-voice-crossing 
     (&key (voices 0)
        (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice 
-       (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+       (gracenotes? :no_grace) ; options: :gracenotes, :no_grace
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "Voices should not cross, i.e., the pitch of simultaneous note pairs in voices are always sorted in decreasing order.
@@ -46,7 +46,7 @@ Arguments are inherited from r-pitch-pitch."
 		       (mode :open) ; options: :open, :open-and-hidden
 		       (intervals '(0 7))
 		       (voices '(0 1))
-		       (gracenotes? :include-gracenotes) ; options: :include-gracenotes, :exclude-gracenotes
+		       (gracenotes? :no_grace) ; options: :gracenotes, :no_grace
 		       (rule-type :true/false) ; options: :true/false :heur-switch
 		       (weight 1))
   "Parallels of given intervals are prohibited between all combinations of the given voices.

@@ -393,7 +393,7 @@ Intended for r-note-meter with format d_offs on beats."
 (defun only-simple-syncopations 
     (&key
        (voices 0)
-       (gracenote-mode :normal) ; options: :normal, :excl-gracenotes 
+       (gracenote-mode :excl-gracenotes) ; options: :normal, :excl-gracenotes 
        (rule-type  :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "Restricts syncopations over beats to certain relatively simple cases. For example, the only possible syncopation allowed for a note value 1/4 is 1/8 before a beat. All arguments are inherited from r-note-meter."  
@@ -443,7 +443,7 @@ Intended for r-note-meter with format d_offs on beats."
 (defun only-simple-tuplet-offs 
     (&key
        (voices 0)
-       (gracenote-mode :normal) ; options: :normal, :excl-gracenotes 
+       (gracenote-mode :excl-gracenotes) ; options: :normal, :excl-gracenotes 
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "Restricts the rhythmic position of notes to relatively simple cases. For example, triplet notes can only be part of a triplet. All arguments are inherited from r-note-meter."  
@@ -715,7 +715,7 @@ Arg strictness is a keyword switching bewtween three cases.
        ;; strictness options: :note, :position, :note-n-position
        (strictness :note)
        (format :d_offs) ; options: :d_offs, :d_offs_m, :d_offs_m_n (NOTE: value :offs not supported)
-       (gracenote-mode :normal) ; options: :normal, :excl-gracenotes 
+       (gracenote-mode :excl-gracenotes) ; options: :normal, :excl-gracenotes 
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "Restricts where metric accents occur depending on the underlying meter. If an accent occurs, then it is on the position defined. 

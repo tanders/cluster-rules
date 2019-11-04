@@ -54,7 +54,7 @@ harmony-positions is a list of positions (0-based chord degrees) in the harmony 
        (voices 2)
        (timepoints '(0))
        (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice 
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1)
        (scale-voice 0))
@@ -86,7 +86,7 @@ Other arguments are inherited from r-pitch-pitch."
 			 (voices 2)
 			 (timepoints '(0))
 			 (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
-			 (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+			 (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 			 (chord-voice 1)
 			 (harmony-positions :all)
 			 (rule-type :true/false) ; options: :true/false :heur-switch
@@ -127,7 +127,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 				(voices 2)
 				(timepoints '(0))
 				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
-				(gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+				(gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 				(rule-type :true/false) ; options: :true/false :heur-switch
 				(weight 1)
 				(chord-voice 1))
@@ -157,7 +157,7 @@ This rule is very similar to only-chord-PCs, but instead of pitch classes absolu
 (defun long-notes-chord-PCs (&key
 			       (voices 2)
 			       (max-nonharmonic-dur 1/1)
-			       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+			       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 			       (rule-type :true/false) ; options: :true/false :heur-switch
 			       (weight 1)
 			       (chord-voice 1))
@@ -195,7 +195,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 (defun chord-tone-before/after-rest (&key
 				       (voices 2)
 				       (input-mode :all) ; options: :all, :beat, :1st-beat
-				       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+				       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 				       (rule-type :true/false) ; options: :true/false :heur-switch
 				       (weight 1)
 				       (chord-voice 1))
@@ -266,7 +266,7 @@ NOTE: an index variant for a pitch-pitch constraint (which could access the sim 
        (voices 2)
        (step-size 2) 	  
        (input-mode :all) ; options: :all, :beat, :1st-beat
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1)
        (chord-voice 1))
@@ -312,7 +312,7 @@ Other arguments are inherited from r-pitch-pitch."
     (&key
        (voices 2)
        (input-mode :all) ; options: :all, :beat, :1st-beat
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1)
        (chord-voice 1))
@@ -355,7 +355,7 @@ Other arguments are inherited from r-pitch-pitch."
        (voices 0)
        (timepoints '(0))
        (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "[Quasi aux def] The pitches of the 1st given voice differ from the sim pitches of the remaining voices."
@@ -377,7 +377,7 @@ Other arguments are inherited from r-pitch-pitch."
        (voices 0)
        (timepoints '(0))
        (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "Simultaneous pitches in all given voices differ.
@@ -408,7 +408,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-pitches-aux b
     (&key
        (voices 0)
        (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "[Quasi aux def] The PCs of the 1st given voice are unequal to the sim PCs of the remaining voices."
@@ -430,7 +430,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-pitches-aux b
     (&key
        (voices 0)
        (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
   "Sim PCs in all given voices are unequal to each other.
@@ -464,7 +464,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 			    (redundant-constraints? :voice-accumulation)
 			    (timepoints '(0))
 			    (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
-			    (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+			    (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 			    (rule-type :true/false) ; options: :true/false :heur-switch
 			    (weight 1))
   "Controls the number of simultaneous pitches. pitch classes. Useful, for example, to require that some underlying harmony is expressed.
@@ -486,7 +486,7 @@ See constrain-number-of-sim-pitches"
 				(redundant-constraints? :voice-accumulation)
 				(timepoints '(0))
 				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
-				(gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+				(gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 				(rule-type :true/false) ; options: :true/false :heur-switch
 				(weight 1))
   "Controls the number of simultaneous pitches. Useful, for example, to require that all pitches of chord layer differ.
@@ -515,7 +515,7 @@ See constrain-number-of-sim-pitches"
 					  (redundant-constraints? :voice-accumulation)
 					  (timepoints '(0))
 					  (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
-					  (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+					  (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 					  (rule-type :true/false) ; options: :true/false :heur-switch
 					  (weight 1))
   "Controls the number of simultaneous pitches or pitch-related parameters. Useful, for example, to require that all pitches of chord layer differ.
@@ -584,7 +584,7 @@ Other arguments are inherited from r-pitch-pitch."
 					      (voices '(0 1))
 					      (timepoints '(0))
 					      (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
-					      (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+					      (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 					      (rule-type :true/false) ; options: :true/false :heur-switch
 					      (weight 1))
   "See constrain-number-of-sim-pitches"
@@ -620,7 +620,7 @@ Other arguments are inherited from r-pitch-pitch."
        (exclude/only :only-given) ; options: :only-given, :exclude-given
        (combinations :over-bass) ; options: :over-bass, :consecutive-voices, :all-combinations
        (input-mode :beat) ; options: :beat, :all, :1st-beat, :1st-voice, :at-timepoints
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (timepoints '(0))
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
@@ -688,7 +688,7 @@ Other arguments are inherited from r-pitch-pitch.
        (abs-intervals? T)
        (input-mode :beat) ; options: :beat, :all, :1st-beat, :1st-voice, :at-timepoints
        (combinations :consecutive-voices) ; options: :over-bass, :consecutive-voices, :all-combinations
-       (gracenotes? :gracenotes) ; options: :no_grace, :gracenotes
+       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (timepoints '(0))
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
