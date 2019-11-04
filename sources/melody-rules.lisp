@@ -256,8 +256,10 @@ A profile as OMN expression with leading rests not yet properly supported.
 
 ;; follow-profile-hr
 
-(defun make-profile-vector (profile-data n)
+(defun make-profile-vector (profile-data n mode)
   "[Aux] Expects a profile that is either a list of numbers, a fenv or an OMN sequence and returns a vector of numbers."
+  #-opusmodus
+  (declare (ignore mode))
   (apply #'vector
 	 (cond ((_number-list? profile-data) profile-data)
 	       ((fe:fenv? profile-data)
