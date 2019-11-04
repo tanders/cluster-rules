@@ -283,6 +283,47 @@ A profile as OMN expression with leading rests not yet properly supported.
 	       (T (error "Not a supported profile format: ~A" profile-data)))))
 
 
+;; TMP: Version of def just to have a named function for profiling
+;; TODO: Refactor: split into multiple functions for different cases (depending on args constrain and mode) to reduce what actual heuristic has to do.
+;; TODO: Refactor argument list (e.g., use keyword args where appropriate)
+(defun follow-profile-hr_actual-rule (xs start n weight-offset constrain mode
+				      profile-vec profile-length) 
+  "Defines the actual heuristic for FOLLOW-PROFILE-HR.
+
+As a heuristic, larger return values mean preferred domain values. Essentially, returns the abs difference between current value and pitch."
+  ;; NOTE: xs should ideally be reversed inside the Cluster Engine constraint applicator, so that the efficiently accessible head is the end, but seemingly this is not the case...
+  (let ((l (- (length xs) start)))
+    (if (and (> l 0)
+	     (or (= n 0) (<= l n))
+	     (<= l profile-length))
+	(- weight-offset
+	   (abs
+	    ;; process different settings for constrain
+	    (case constrain
+	      (:profile  (- (first (last xs)) (elt profile-vec (1- l))))
+	      (:intervals (if (>= l 2)
+			      (case mode
+				;; distance between distances of last two vals
+				(:pitch (- (abs (- (apply #'- (last xs 2))
+						   (- (elt profile-vec (- l 2))
+						      (elt profile-vec (- l 1)))))))
+				;; for rhythm distance is quotient not difference
+				;; TODO: unfinished for rhythm -- how to compute distance of distances?
+				(:rhythm (abs (- (apply #'/ (last xs 2))
+						 (/ (elt profile-vec (- l 2))
+						    (elt profile-vec (- l 1)))))))
+			      0))
+	      ;; distance between directions of last two vals
+	      ;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
+	      (:directions (if (>= l 2)
+			       (- (apply #'_direction-int (last xs 2))
+				  (_direction-int
+				   (elt profile-vec (- l 2))
+				   (elt profile-vec (- l 1))))
+			       0)))))
+	;; otherwise no preference
+	0)))
+
 ;;; TODO:
 ;; - some test ensuring that argument values are in range allowed -- otherwise error (e.g. assert startments?)
 ;; - Generalise: constrain could also receive a function, which is used for specifying that relation
@@ -337,12 +378,15 @@ BUG: mode :rhythm not yet working.
      (lambda (profile-voice)
 	 (let* ((profile (first profile-voice))
 		(voice (second profile-voice))
-		(my-profile (make-profile-vector profile n))
-		(profile-length (length my-profile)))
+		(profile-vec (make-profile-vector profile n mode))
+		(profile-length (length profile-vec)))
 	   (funcall (case mode
 		      (:pitch #'hr-pitches-one-voice)
 		      (:rhythm #'hr-rhythms-one-voice))
-		    ;;; TODO: consider reducing following function (rule) for efficiency, because all case expressions etc. are executed again and again for every variable decision during search
+		    ;;; TODO: consider reducing following function (rule) for efficiency to only the necessary code with higher-order programming, because all case expressions etc. are executed again and again for every variable decision during search.
+		    (lambda (xs)
+		      (follow-profile-hr_actual-rule xs start n weight-offset constrain mode profile-vec profile-length))
+		    #|
 		    (lambda (xs) 
 			"Defines a heuristic -- larger return values are preferred. Essentially, returns the abs difference between current value and pitch."
 			;; NOTE: xs should ideally be reversed inside the Cluster Engine constraint applicator, so that the efficiently accessible head is the end, but seemingly this is not the case...
@@ -354,31 +398,33 @@ BUG: mode :rhythm not yet working.
 				 (abs
 				  ;; process different settings for constrain
 				  (case constrain
-				    (:profile  (- (first (last xs)) (elt my-profile (1- l))))
+				    (:profile  (- (first (last xs)) (elt profile-vec (1- l))))
 				    (:intervals (if (>= l 2)
 						    (case mode
 						      ;; distance between distances of last two vals
 						      (:pitch (- (abs (- (apply #'- (last xs 2))
-									 (- (elt my-profile (- l 2))
-									    (elt my-profile (- l 1)))))))
+									 (- (elt profile-vec (- l 2))
+									    (elt profile-vec (- l 1)))))))
 						      ;; for rhythm distance is quotient not difference
 						      ;; TODO: unfinished for rhythm -- how to compute distance of distances?
 						      (:rhythm (abs (- (apply #'/ (last xs 2))
-								       (/ (elt my-profile (- l 2))
-									  (elt my-profile (- l 1)))))))
+								       (/ (elt profile-vec (- l 2))
+									  (elt profile-vec (- l 1)))))))
 						    0))
 				    ;; distance between directions of last two vals
 				    ;; TODO: for rhythm def direction as whether distances are smaller or larger than 1 not 0
 				    (:directions (if (>= l 2)
 						     (- (apply #'_direction-int (last xs 2))
 							(_direction-int
-							 (elt my-profile (- l 2))
-							 (elt my-profile (- l 1))))
+							 (elt profile-vec (- l 2))
+							 (elt profile-vec (- l 1))))
 						     0)))))
 			      ;; otherwise no preference
 			      0)))
+		    |#
 		    voice
 		    (case mode
+		      ;; !! BUG: TODO: Consider using :pitch/nth instead of :all-pitches
 		      (:pitch :all-pitches)
 		      (:rhythm :list-with-all-durations)))))
      (tu:mat-trans
