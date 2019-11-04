@@ -611,9 +611,9 @@ NOTE: If this rule is used with pitch/rhythm motifs, then only the selection of 
       (mapcar #'* xs (ccl::pwgl-sample BPF (length xs)))))
 |#
 
-;; NOTE: Variables min and max never used
 (defun trfm-reverse (min max)
   "Returns a transformation function for pitch-profile-hr or rhythm-profile-hr. The original value sequence is reversed."
+  (declare (ignore min max))
   (lambda (xs) (reverse xs)))
 
 
