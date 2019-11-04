@@ -6,7 +6,7 @@
 
 (progn
   (asdf:load-system :cluster-rules/tests)
-  (run! 'min/max-harmonic-interval_no-pitch-repetition))
+  (run! 'restrict-low-harmonic-intervals_only-fifths))
 
 
 (asdf:load-system :cluster-engine/tests)
@@ -177,13 +177,75 @@
     :pitch-domain (gen-selection :length (gen-integer :min 5 :max 10)
 				 :elements *pitch-domain-template*)))
 
+;; TODO: Consider randomising the domain
+(defparameter *harmony-domains-example-1*
+  '(;; scales rhythms
+    ((1/4) (1/2) (1))
+    ;; scales pitches (chord sequence)
+    (((60 62 64 65 67 69 71))) ; C major scale
+    ;; harmony rhythms
+    ((1/4) (1/2) (1))
+    ;; harmony pitches (chord sequence)
+    (((60 64 67) (59 62 67)))) ; I V7 sequence
+  "Ready-made static value for test-harmonic-constraint's argument harmony-domains.")
 
-;; TODO: only-scale-pcs
+(test only-scale-pcs
+  "Testing only-scale-pcs: :input-mode :all"
+  (test-harmonic-constraint 
+      (cr:only-scale-pcs :voices '(2) :input-mode :all :scale-voice 0)
+    (lambda (pitches)
+      (let ((scale-pitches (first pitches)) ;; should be list (chord)
+	    (voice-pitch (third pitches)))
+	(when* (and scale-pitches voice-pitch) ; skip rests
+	  (member (tu:pitch->pc voice-pitch) (tu:pitch->pc scale-pitches)))))
+    :voice-number 1
+    :harmony-domains *harmony-domains-example-1*))
 
 
+(test only-chord-pcs_on-beat
+  "Testing only-chord-pcs: :input-mode :beat"
+  (test-harmonic-constraint 
+      (cr:only-chord-pcs :voices '(2) :input-mode :beat ; :1st-beat
+			 :chord-voice 1)
+    (lambda (notes) ; notes of format (:start <start-time> :duration <duration> :pitch <pitch>)
+      (let ((chord (second notes)) ;; should be list (chord)
+	    (voice-note (third notes)))
+	(when*
+	    ;; Current start time on beat in 4/4 meter
+	    (= (mod (max (get-start chord)
+			 (get-start voice-note))
+		    1/4)
+	       0)
+	  (let ((chord-pitches (get-pitch chord))
+		(voice-pitch (get-pitch voice-note)))
+	    (when* (and chord-pitches voice-pitch) ; no rests
+	      (member (tu:pitch->pc voice-pitch) (tu:pitch->pc chord-pitches)))))))
+    :voice-number 1
+    :harmony-domains *harmony-domains-example-1*
+    :test-parameter :all))
 
 
-;; TODO: only-chord-pcs
+(test only-chord-pcs_on-first-beat
+  "Testing only-chord-pcs: :input-mode :1st-beat"
+  (test-harmonic-constraint 
+      (cr:only-chord-pcs :voices '(2) :input-mode :1st-beat 
+			 :chord-voice 1)
+    (lambda (notes) ; notes of format (:start <start-time> :duration <duration> :pitch <pitch>)
+      (let ((chord (second notes)) ;; should be list (chord)
+	    (voice-note (third notes)))
+	(when*
+	    ;; Current start time on first beat of bar in in 4/4 meter
+	    (= (mod (max (get-start chord)
+			 (get-start voice-note))
+		    1)
+	       0)
+	  (let ((chord-pitches (get-pitch chord))
+		(voice-pitch (get-pitch voice-note)))
+	    (when* (and chord-pitches voice-pitch) ; no rests
+	      (member (tu:pitch->pc voice-pitch) (tu:pitch->pc chord-pitches)))))))
+    :voice-number 1
+    :harmony-domains *harmony-domains-example-1*
+    :test-parameter :all))
 
 
 (test number-of-sim-PCs
@@ -213,9 +275,57 @@
 				 :elements *pitch-domain-template*)))
 
 
+(test restrict-low-harmonic-intervals_only-fifths
+  "Testing restrict-low-harmonic-intervals for two voices: only fifths are possible with this pitch domain and the constraints."
+  (test-harmonic-constraint 
+      (ce:rules->cluster
+       ;; No unison
+       (cr:min/max-harmonic-interval :min-interval 1 :voices '(0 1) :input-mode :all
+				     :combinations :consecutive-voices :abs-intervals? NIL)
+       ;; Constraint to test
+       (cr:restrict-low-harmonic-intervals :voices '(0 1)))
+    (lambda (pitches)
+      (let ((pitch1 (first pitches)) ;; higher voice ID, assumed lower pitch
+	    (pitch2 (second pitches)))
+	(when* (and pitch1 pitch2) ; no rests
+	  (let ((interval (abs (- pitch2 pitch1))))
+	    ;; NOTE: Only fifth permitted due to lowness of domain
+	    (= interval 7)))))
+    :voice-number 2
+    :pitch-domain (gen-selection :length (gen-integer :min 5 :max 12)
+				 ;; NOTE: Only fifth permitted due to lowness of domain
+				 :elements (loop for pitch from 32 to 43 collect (list pitch)))))
+
+(test restrict-low-harmonic-intervals_no-solution
+  "Testing restrict-low-harmonic-intervals for two voices: no solution"
+  (for-all ((rhythm-domain (gen-selection
+			    :length (gen-integer :min 2 :max 4)
+			    :elements '((1/16) (1/8) (3/16) (1/4) (3/8) (1/2) (3/4) (1)))))
+    (let* ((stop-time 2)
+	   (no-of-variables 1000)
+	   ;; NOTE: Pitch domain too low for finding solution for restrict-low-harmonic-intervals
+	   (pitch-domain (loop for pitch from 25 to 36 collect (list pitch))) 
+	   (solution (cluster-shorthand no-of-variables
+					(ce:rules->cluster
+					 (ce:stop-rule-time '(0 1) stop-time :and)
+					 ;; No unison
+					 (cr:min/max-harmonic-interval :min-interval 1 :voices '(0 1) :input-mode :all
+								       :combinations :consecutive-voices :abs-intervals? NIL)
+					 ;; Actual constraint to test
+					 (cr:restrict-low-harmonic-intervals :voices '(0 1)))
+					(list rhythm-domain pitch-domain
+					      rhythm-domain pitch-domain))))
+      (is (equal solution :no-solution)))))
+
+
+
+
 ;; TODO: stepwise-non-chord-tone-resolution
 
+
 ;; TODO: chord-tone-before/after-rest
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
