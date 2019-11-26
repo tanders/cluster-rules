@@ -312,39 +312,33 @@ Other arguments are inherited from r-pitch-pitch."
        (voices 2)
        (input-mode :all) ; options: :all, :beat, :1st-beat
        (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
+       (harmony-positions :all)
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1)
        (chord-voice 1))
   "Every tone (PC) that is not a chord tone (member of sim chord PCs, in voice 1 by default) is followed by a chord tone.
 
 Args: 
-voices (int or list of ints): the voice(s) to which this constraint is applied.
+ - voices (int or list of ints): the voice(s) to which this constraint is applied.
+ - harmony-positions (list of ints or :all): list of positions (chord degrees) that are allowed. This allows to consider certain positions as dissonances (e.g., positions > 2) and require dissonance treatment.
 
 Optional args:
-chord-voice (int, default 1): the voice representing the underlying chord.
+ - chord-voice (int, default 1): the voice representing the underlying chord.
 
 Other arguments are inherited from r-pitch-pitch."
   (mapcar (lambda (voice)
-	      (r-pitch-pitch (lambda (pitches1 pitches2)
-				 ;; Every pitchesN is a list of the form (chord-pitches voice-pitch) 
-				 (if (and (first pitches1) (first pitches2)
-					  (second pitches1) (second pitches2))  ;; no rests
-				     (let ((chord-pitches1 (first pitches1))
-					   (voice-pitch1 (second pitches1))
-					   (chord-pitches2 (first pitches2))
-					   (voice-pitch2 (second pitches2)))
-				       (if (not (member (mod voice-pitch1 12) 
-							(mapcar (lambda (p) (mod p 12)) chord-pitches1)))
-					   (member (mod voice-pitch2 12)
-						   (mapcar (lambda (p) (mod p 12)) chord-pitches2))
-					   T))
-				     T))
-			     (list chord-voice voice)
-			     '(0)
-			     input-mode
-			     gracenotes?
-			     :pitch
-			     rule-type weight))
+	    (r-pitch-pitch (lambda (pitches1 pitches2)
+			     ;; Every pitchesN is a list of the form (voice-pitch chord-pitches) 
+			     (when* (and (first pitches1) (first pitches2)
+					 (second pitches1) (second pitches2))  ;; no rests
+			       (when* (not (in-harmony? pitches1 :harmony-positions harmony-positions))
+				 (in-harmony? pitches2 :harmony-positions harmony-positions))))
+			   (list voice chord-voice)
+			   '(0)
+			   input-mode
+			   gracenotes?
+			   :pitch
+			   rule-type weight))
 	  (if (listp voices) voices (list voices))))
 
 
