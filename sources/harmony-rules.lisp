@@ -270,38 +270,37 @@ NOTE: an index variant for a pitch-pitch constraint (which could access the sim 
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1)
        (chord-voice 1))
-  "Every tone (PC) that is not a chord tone (member of sim chord PCs, in voice 1 by default) is reached/left by a step of the given step size.
+  "Every tone (PC) that is not a chord tone (member of sim chord PCs, in voice 1 by default) is reached and left by a step of at most the given step size. Note repetitions are possible as well.
 
 Args: 
-step-size (int): maximum interval considered a step.
-voices (int or list of ints): the voice(s) to which this constraint is applied.
+ - step-size (int): maximum interval considered a step.
+ - voices (int or list of ints): the voice(s) to which this constraint is applied.
 
 Optional args:
-chord-voice (int, default 1): the voice representing the underlying chord.
+ - chord-voice (int, default 1): the voice representing the underlying chord.
 
 Other arguments are inherited from r-pitch-pitch."
   (mapcar (lambda (voice)
-	      (r-pitch-pitch (lambda (pitches1 pitches2 pitches3)
-				 ;; Every pitchesN is a list of the form (chord-pitches voice-pitch) 
-				 (if (and (first pitches2) (second pitches2))  ;; no rests
-				     (let ((voice-pitch2 (second pitches2)))
-				       (if (not (member (mod voice-pitch2 12) ; middle PC
-							;; chord PCs
-							(mapcar (lambda (p) (mod p 12)) (first pitches2))))
-					   (and (if (second pitches1) ; no rest
-						    (<= (abs (- (second pitches1) voice-pitch2)) step-size)
-						    T)
-						(if (second pitches3) ; no rest
-						    (<= (abs (- voice-pitch2 (second pitches3))) step-size)
-						    T))
-					   T))
-				     T))
-			     (list chord-voice voice)
-			     '(0)
-			     input-mode
-			     gracenotes?
-			     :pitch
-			     rule-type weight))
+	    (r-pitch-pitch (lambda (pitches1 pitches2 pitches3)
+			     ;; Every pitchesN is a list of the form (chord-pitches voice-pitch) 
+			     (let ((chord-pitches2 (first pitches2))
+				   (voice-pitch2 (second pitches2)))
+			       (when* (and chord-pitches2 voice-pitch2)  ;; no rests
+				 (let ((voice-pitch1 (second pitches1))
+				       (voice-pitch3 (second pitches3)))
+				   (when* (not (member (mod voice-pitch2 12) ; middle PC
+						       ;; chord PCs
+						       (mapcar (lambda (p) (mod p 12)) chord-pitches2)))
+				     (and (when* voice-pitch1 ; no rest
+					    (<= (abs (- voice-pitch1 voice-pitch2)) step-size))
+					  (when* voice-pitch3 ; no rest
+					    (<= (abs (- voice-pitch2 voice-pitch3)) step-size))))))))
+			   (list chord-voice voice)
+			   '(0)
+			   input-mode
+			   gracenotes?
+			   :pitch
+			   rule-type weight))
 	  (if (listp voices) voices (list voices))))
 
 
