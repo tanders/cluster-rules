@@ -175,6 +175,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 	      (r-pitch-pitch (lambda (p_d_offs)
 				 "The PC of (first pitches) is in the PCs of (second pitches)."
 				 (destructuring-bind ((pitch1 dur1 offs1) (pitch2 dur2 offs2)) p_d_offs
+				   (declare (ignore offs1 offs2 dur2))
 				   (if (and (and pitch1 pitch2) ;; no rests
 					    (> dur1 max-nonharmonic-dur)) ;; main condition
 				       (member (mod pitch1 12)
