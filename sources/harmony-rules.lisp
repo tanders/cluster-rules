@@ -196,34 +196,34 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 				       (voices 2)
 				       (input-mode :all) ; options: :all, :beat, :1st-beat
 				       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
+				       (harmony-positions :all)
 				       (rule-type :true/false) ; options: :true/false :heur-switch
 				       (weight 1)
 				       (chord-voice 1))
   "Tones (PC) in the given voice(s) after a rest must be a member of the underlying chord PCs.
 
 Args: 
-voices (int or list of ints): the voice(s) to which this constraint is applied.
+ - voices (int or list of ints): the voice(s) to which this constraint is applied.
+ - harmony-positions (list of ints or :all): list of positions (chord degrees) that are allowed. This allows to consider certain positions as dissonances (e.g., positions > 2) and require dissonance treatment.
 
 Optional args:
-chord-voice (int, default 1): the voice representing the underlying chord.
+ - chord-voice (int, default 1): the voice representing the underlying chord.
 
 Other arguments are inherited from r-pitch-pitch."
   (mapcar (lambda (voice)
-	      (r-pitch-pitch (lambda (pitches1 pitches2)	     
-				 (let* ((voice-pitch1 (first pitches1))
-					(voice-pitch2 (first pitches2))
-					(rest1? (null voice-pitch1)) ; 1st note is rest
-					(rest2? (null voice-pitch2))) ; 2nd note is rest
-				   (cond ((and rest1? rest2?) T) ; in case there are two rests in a row
-					 (rest1? (PC-member voice-pitch2 (second pitches2))) ; after rest
-					 (rest2? (PC-member voice-pitch1 (second pitches1))) 
-					 (T T)))) ; before rest
-			     (list voice chord-voice)
-			     '(0)
-			     input-mode
-			     gracenotes?
-			     :pitch
-			     rule-type weight))
+	    (r-pitch-pitch (lambda (pitches1 pitches2)	     
+			     (let* ((rest1? (null (first pitches1))) ; 1st note is rest
+				    (rest2? (null (first pitches2)))) ; 2nd note is rest
+			       (cond ((and rest1? rest2?) T) ; in case there are two rests in a row
+				     (rest1? (in-harmony? pitches2 :harmony-positions harmony-positions)) ; after rest
+				     (rest2? (in-harmony? pitches1 :harmony-positions harmony-positions)) ; before rest
+				     (T T))))
+			   (list voice chord-voice)
+			   '(0)
+			   input-mode
+			   gracenotes?
+			   :pitch
+			   rule-type weight))
 	  (if (listp voices) voices (list voices))))
 
 
@@ -267,6 +267,7 @@ NOTE: an index variant for a pitch-pitch constraint (which could access the sim 
        (step-size 2) 	  
        (input-mode :all) ; options: :all, :beat, :1st-beat
        (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
+       (harmony-positions :all)
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1)
        (chord-voice 1))
@@ -275,6 +276,7 @@ NOTE: an index variant for a pitch-pitch constraint (which could access the sim 
 Args: 
  - step-size (int): maximum interval considered a step.
  - voices (int or list of ints): the voice(s) to which this constraint is applied.
+ - harmony-positions (list of ints or :all): list of positions (chord degrees) that are allowed. This allows to consider certain positions as dissonances (e.g., positions > 2) and require them to be resolved as well.
 
 Optional args:
  - chord-voice (int, default 1): the voice representing the underlying chord.
@@ -282,20 +284,19 @@ Optional args:
 Other arguments are inherited from r-pitch-pitch."
   (mapcar (lambda (voice)
 	    (r-pitch-pitch (lambda (pitches1 pitches2 pitches3)
-			     ;; Every pitchesN is a list of the form (chord-pitches voice-pitch) 
-			     (let ((chord-pitches2 (first pitches2))
-				   (voice-pitch2 (second pitches2)))
+			     ;; Every pitchesN is a list of the form (voice-pitch chord-pitches) 
+			     (let ((voice-pitch2 (first pitches2))
+				   (chord-pitches2 (second pitches2)))
 			       (when* (and chord-pitches2 voice-pitch2)  ;; no rests
-				 (let ((voice-pitch1 (second pitches1))
-				       (voice-pitch3 (second pitches3)))
-				   (when* (not (member (mod voice-pitch2 12) ; middle PC
-						       ;; chord PCs
-						       (mapcar (lambda (p) (mod p 12)) chord-pitches2)))
+				 (let ((voice-pitch1 (first pitches1))
+				       (voice-pitch3 (first pitches3)))
+				   (when* (not (in-harmony? pitches2 :harmony-positions harmony-positions))
+				     ;; (break)
 				     (and (when* voice-pitch1 ; no rest
 					    (<= (abs (- voice-pitch1 voice-pitch2)) step-size))
 					  (when* voice-pitch3 ; no rest
 					    (<= (abs (- voice-pitch2 voice-pitch3)) step-size))))))))
-			   (list chord-voice voice)
+			   (list voice chord-voice)
 			   '(0)
 			   input-mode
 			   gracenotes?
