@@ -25,6 +25,7 @@
 ;;; Follow harmony rules 
 ;;;
 
+;; TODO: Add keyword arg intervals that specifies which intervals above the first chord tone (root) are considered in harmony. This allows, e.g., to detect and treat suspension chords differently. OR arg substitute-intervals with mappings of intervals above the root to be replaced with another given interval. Example (sus fourth to be replaced by fifth): '((5 7))
 (defun in-harmony? (pitches &key (harmony-positions :all))
   "The PC of (first pitches) is in the PCs of (second pitches). (first pitches) can be a chord.
 
@@ -36,16 +37,24 @@ harmony-positions is a list of positions (0-based chord degrees) in the harmony 
 	 (reduced-harmony-pitches (if (eql harmony-positions :all)
 				      harmony-pitches
 				      (loop for pos in harmony-positions
-					 append (when (>= harmony-size pos) ;; just in case...
-						  (list (nth pos harmony-pitches)))))))
-    (if (and voice-pitch harmony-pitches)  ; no rests
-	(let ((harmony-pcs (mapcar (lambda (p) (mod p 12)) reduced-harmony-pitches)))
-	  (every (lambda (p)
-		   (member (mod p 12) harmony-pcs))
-		 ;; handle both individual pitches and chords
-		 (tu:ensure-list voice-pitch)))
-	T)))
-
+					 ;; if (= pos 3) do (break)
+					 when (>= (1- harmony-size) pos) ;; just in case...
+					 collect (nth pos harmony-pitches)
+					   ;; (if (= pos 3)
+					   ;;     (progn (break)
+					   ;; 	      (nth pos harmony-pitches))
+					   ;;     (nth pos harmony-pitches)
+					   ;;     )
+					   ))))
+    (when* (and voice-pitch harmony-pitches)  ; no rests
+      (let ((harmony-pcs (mapcar (lambda (p) (mod p 12))
+				 reduced-harmony-pitches)))
+	(every (lambda (p) (member (mod p 12) harmony-pcs))
+	       ;; handle both individual pitches and chords
+	       (tu:ensure-list voice-pitch))))))
+#|
+(in-harmony? ' (44 (68 72 75 79)))
+|#
 
 ;;; only-scale-PCs 
 
