@@ -20,7 +20,7 @@
        (gracenotes? :no_grace) ; options: :gracenotes, :no_grace
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
-  "Voices should not cross, i.e., the pitch of simultaneous note pairs in voices are always sorted in decreasing order.
+  "Voices should not cross, i.e., the pitch of simultaneous note pairs in voices are always sorted in decreasing order (lower voice number means higher pitch).
 
 Arguments are inherited from r-pitch-pitch."
   (let ((sorted-voices (sort (copy-list voices) #'<)))
