@@ -483,7 +483,7 @@ Note: If this rule is used with pitch motifs, then only the selection of the 1st
 	    rule-type
 	    weight)))
      (tu:mat-trans
-      (list (if (listp profiles)
+      (list (if (listp profiles) ;; BUG: a single profile is also a list 
 		profiles
 		(make-list voices-length :initial-element profiles))
 	    my-voices)))))
