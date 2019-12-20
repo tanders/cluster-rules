@@ -40,8 +40,8 @@
 (setf fiveam:*on-failure* :debug)
 
 ;; TMP: reduce number of trials for speeding up during test developments
-(setf fiveam:*num-trials* 10)
-;; (setf fiveam:*num-trials* 100)
+;; (setf fiveam:*num-trials* 10)
+(setf fiveam:*num-trials* 100)
 ;; (setf fiveam:*num-trials* 1000)
 
 (def-suite cluster-rules-tests
