@@ -71,11 +71,13 @@ harmony-positions is a list of positions (0-based chord degrees) in the harmony 
 
 Args: 
 voices (int or list of ints): the voice(s) to which this constraint is applied.
+input-mode (either :all, :beat, :1st-beat, :1st-voice, :at-timepoints): if set to :all, the constraint is applied whenever a new voice note or scale starts, while the setting :1st-voice applies the constraint only at each now voice note and multiple underlying harmonies per voice note are ignored. See the doc of r-pitch-pitch for the meaning of the other settings.
 
 Optional args:
 scale-voice (int, default 0): the voice representing the underlying scale.
 
-Other arguments are inherited from r-pitch-pitch."
+Other arguments are inherited from r-pitch-pitch.
+"
   (mapcar (lambda (voice)
 	    (r-pitch-pitch
 	     ;; Wrapping in lambda only for ensuring only a single arg...
