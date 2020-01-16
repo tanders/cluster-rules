@@ -62,7 +62,7 @@ harmony-positions is a list of positions (0-based chord degrees) in the harmony 
     (&key
        (voices 2)
        (timepoints '(0))
-       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice 
+       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints 
        (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1)
@@ -94,7 +94,7 @@ Other arguments are inherited from r-pitch-pitch."
 (defun only-chord-PCs (&key
 			 (voices 2)
 			 (timepoints '(0))
-			 (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
+			 (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints 
 			 (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 			 (chord-voice 1)
 			 (harmony-positions :all)
@@ -135,7 +135,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 (defun only-spectrum-pitches (&key
 				(voices 2)
 				(timepoints '(0))
-				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
+				(input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints 
 				(gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 				(rule-type :true/false) ; options: :true/false :heur-switch
 				(weight 1)
@@ -204,7 +204,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 
 (defun chord-tone-before/after-rest (&key
 				       (voices 2)
-				       (input-mode :all) ; options: :all, :beat, :1st-beat
+				       (input-mode :all) ; options: :all, :beat, :1st-beat, :at-timepoints 
 				       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 				       (harmony-positions :all)
 				       (rule-type :true/false) ; options: :true/false :heur-switch
@@ -275,7 +275,7 @@ NOTE: an index variant for a pitch-pitch constraint (which could access the sim 
     (&key
        (voices 2)
        (step-size 2) 	  
-       (input-mode :all) ; options: :all, :beat, :1st-beat
+       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
        (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (harmony-positions :all)
        (rule-type :true/false) ; options: :true/false :heur-switch
@@ -321,7 +321,7 @@ Other arguments are inherited from r-pitch-pitch."
 (defun chord-tone-follows-non-chord-tone
     (&key
        (voices 2)
-       (input-mode :all) ; options: :all, :beat, :1st-beat
+       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
        (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (harmony-positions :all)
        (rule-type :true/false) ; options: :true/false :heur-switch
@@ -358,7 +358,7 @@ Other arguments are inherited from r-pitch-pitch."
     (&key
        (voices 0)
        (timepoints '(0))
-       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
+       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
        (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
@@ -380,7 +380,7 @@ Other arguments are inherited from r-pitch-pitch."
     (&key
        (voices 0)
        (timepoints '(0))
-       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice
+       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints
        (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
        (rule-type :true/false) ; options: :true/false :heur-switch
        (weight 1))
