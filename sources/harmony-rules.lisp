@@ -166,6 +166,7 @@ This rule is very similar to only-chord-PCs, but instead of pitch classes absolu
 (defun long-notes-chord-PCs (&key
 			       (voices 2)
 			       (max-nonharmonic-dur 1/1)
+			       (input-mode :all) ; options: :all, :beat, :1st-beat, :1st-voice, :at-timepoints 
 			       (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 			       (rule-type :true/false) ; options: :true/false :heur-switch
 			       (weight 1)
@@ -193,7 +194,7 @@ Other arguments are inherited from r-pitch-pitch. For example, it is possible to
 				       T)))
 			     (list voice chord-voice)
 			     '(0)
-			     :all
+			     input-mode
 			     gracenotes?
 			     :p_d_offs
 			     rule-type weight))
