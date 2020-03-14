@@ -907,19 +907,25 @@ chord-voice (default 1): the voice representing the underlying chord."
 
 If pc? is set to T, then this constraint compares pitch classes instead of actual pitches."
   (let ((root-pc (mod root 12)))
-    (loop for pos in positions
-       append (R-index-pitches-one-voice
-	       (lambda (ps)
+    (flet ((aux ()
+	     (if pc?
+		 (lambda (ps)
 		   (if ps ; no rest
-		       (if pc? ;;; TODO: do this test only once at the time this rule is created
-			   (= (mod (first ps) 12) root-pc)
-			   (= (first ps) root))
+		       (= (mod (first ps) 12) root-pc)
 		       T))
-	       (list pos)
-	       chord-voice
-	       :position-for-pitches
-	       rule-type
-	       weight))))
+		 (lambda (ps)
+		   (if ps ; no rest
+		       (= (first ps) root)
+		       T)))))
+      (loop for pos in positions
+	 append (R-index-pitches-one-voice
+		 (aux)
+		 (list pos)
+		 chord-voice
+		 :position-for-pitches
+		 rule-type
+		 weight)))))
+
 
 
 
