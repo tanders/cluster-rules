@@ -305,10 +305,12 @@ Other arguments are inherited from r-pitch-pitch."
 				       (voice-pitch3 (first pitches3)))
 				   (when* (not (in-harmony? pitches2 :harmony-positions harmony-positions))
 				     ;; (break)
-				     (and (when* voice-pitch1 ; no rest
-					    (<= (abs (- voice-pitch1 voice-pitch2)) step-size))
-					  (when* voice-pitch3 ; no rest
-					    (<= (abs (- voice-pitch2 voice-pitch3)) step-size))))))))
+				     (and (if voice-pitch1 ; no rest
+					      (<= (abs (- voice-pitch1 voice-pitch2)) step-size)
+					      NIL) ; fail in case preceeded by rest
+					  (if voice-pitch3 ; no rest
+					      (<= (abs (- voice-pitch2 voice-pitch3)) step-size)
+					      NIL)))))))
 			   (list voice chord-voice)
 			   '(0)
 			   input-mode
