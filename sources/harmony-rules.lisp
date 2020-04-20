@@ -476,7 +476,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 			    (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 			    (rule-type :true/false) ; options: :true/false :heur-switch
 			    (weight 1))
-  "Controls the number of simultaneous pitches. pitch classes. Useful, for example, to require that some underlying harmony is expressed.
+  "Controls the number of simultaneous pitch classes. Useful, for example, to require that some underlying harmony is expressed.
 
 Args: 
 See constrain-number-of-sim-pitches"
