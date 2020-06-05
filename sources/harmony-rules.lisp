@@ -726,7 +726,9 @@ Other arguments are inherited from r-pitch-pitch.
 				       (abs raw-interval)
 				       raw-interval)))
 		    (and (if min-interval
-			     (<= min-interval interval)
+			     (progn
+			       ;; (break)	
+			       (<= min-interval interval))
 			     T)
 			 (if max-interval 
 			     (<= interval max-interval)
