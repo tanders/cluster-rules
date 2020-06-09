@@ -621,17 +621,31 @@ Other arguments are inherited from r-pitch-pitch."
 					(:reduce-no (- pitch-number
 						       (length (remove NIL pitches :test (complement #'eql)))))
 					(:ignore pitch-number)))
+			  ;; (actual-number aux-number)
 			  ;; Take underlying harmony into account
-			  (actual-number (if (and chord-pitches ;; there is an underlying harmony
-						  at-most-as-in-chord-voice)
-					     (min (length chord-pitches) aux-number)
-					     aux-number))
+			  #|
+			  ?? BUG: If the var actual-number does not
+			  depend on chord-pitches (see version above
+			  in comments), but arg
+			  at-most-as-in-chord-voice is used, i.e. if
+			  the only difference is that the lambda given
+			  to r-pitch-pitch additionally receives the
+			  underlying harmony as arg, then seemingly
+			  that results in a change that fixes some
+			  CSPs. Something is very fishy here -- I must
+			  misunderstand something here.
+			  |#
+			  (actual-number (if (and chord-pitches ;; there is an underlying harmony (no rest)
+			  			  at-most-as-in-chord-voice)
+			  		     (min (length chord-pitches) aux-number)
+			  		     aux-number))
 			  ;; The chord resulting from the pitches in voices
 			  (harm (remove-duplicates (mapcar key
 							   ;; take out rests
 							   (remove NIL pitches)))))
-		     ;; (break)		
-		     ;; (assert (<= pitch-number (length pitches))) 
+		     (assert (<= pitch-number (length pitches)))
+		     ;; (when (> ce::*current-loop-n* 50000)
+		     ;; 	 (break))
 		     (if harm				  
 			 (funcall (ecase condition
 				    (:min #'>=)
