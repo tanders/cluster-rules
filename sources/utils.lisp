@@ -19,6 +19,7 @@
 
 
 
+;; alternative :forward-rule #'ce::fwd-rule_left-to-right_type-tie-breaking
 (defun cluster-engine (no-of-variables rules metric-domain list-of-domains
                       &key (rnd? T) (debug? nil) (forward-rule :fwd-rule6B))
   "Slight variant of function cluster-engine::clusterengine where the order of variables is rearranged for shorter function calls. See the orig definition for further documentation."
