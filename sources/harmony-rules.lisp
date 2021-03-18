@@ -305,10 +305,12 @@ Other arguments are inherited from r-pitch-pitch."
 				       (voice-pitch3 (first pitches3)))
 				   (when* (not (in-harmony? pitches2 :harmony-positions harmony-positions))
 				     ;; (break)
-				     (and (when* voice-pitch1 ; no rest
-					    (<= (abs (- voice-pitch1 voice-pitch2)) step-size))
-					  (when* voice-pitch3 ; no rest
-					    (<= (abs (- voice-pitch2 voice-pitch3)) step-size))))))))
+				     (and (if voice-pitch1 ; no rest
+					      (<= (abs (- voice-pitch1 voice-pitch2)) step-size)
+					      NIL) ; fail in case preceeded by rest
+					  (if voice-pitch3 ; no rest
+					      (<= (abs (- voice-pitch2 voice-pitch3)) step-size)
+					      NIL)))))))
 			   (list voice chord-voice)
 			   '(0)
 			   input-mode
@@ -467,6 +469,7 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 			    (PC-number 2)
 			    (condition :min) ; options: :min, :equal, :max
 			    (rests-mode :reduce-no) ; options: :reduce-no, :ignore
+			    (at-most-as-in-chord-voice NIL)
 			    (voices '(0 1))
 			    (redundant-constraints? :voice-accumulation)
 			    (timepoints '(0))
@@ -474,11 +477,12 @@ TODO: Revise this definition -- can the interplay with unequal-sim-PCs-aux be si
 			    (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 			    (rule-type :true/false) ; options: :true/false :heur-switch
 			    (weight 1))
-  "Controls the number of simultaneous pitches. pitch classes. Useful, for example, to require that some underlying harmony is expressed.
+  "Controls the number of simultaneous pitch classes. Useful, for example, to require that some underlying harmony is expressed.
 
 Args: 
 See constrain-number-of-sim-pitches"
-  (constrain-number-of-sim-pitches :pitch-number PC-number :condition condition :rests-mode rests-mode :voices voices
+  (constrain-number-of-sim-pitches :pitch-number PC-number :condition condition :rests-mode rests-mode
+				   :at-most-as-in-chord-voice at-most-as-in-chord-voice :voices voices
 				   :redundant-constraints? redundant-constraints? :timepoints timepoints :input-mode input-mode
 				   :gracenotes? gracenotes? :rule-type rule-type :weight weight
 				   ;; Unique element of this rule
@@ -489,6 +493,7 @@ See constrain-number-of-sim-pitches"
 				(pitch-number 2)
 				(condition :min) ; options: :min, :equal, :max
 				(rests-mode :reduce-no) ; options: :reduce-no, :ignore
+				(at-most-as-in-chord-voice NIL)
 				(voices '(0 1))
 				(redundant-constraints? :voice-accumulation)
 				(timepoints '(0))
@@ -502,7 +507,8 @@ This function does the same as constrain-number-of-sim-pitches, but is kept for 
 
 Args: 
 See constrain-number-of-sim-pitches"
-  (constrain-number-of-sim-pitches :pitch-number pitch-number :condition condition :rests-mode rests-mode :voices voices
+  (constrain-number-of-sim-pitches :pitch-number pitch-number :condition condition :rests-mode rests-mode
+				   :at-most-as-in-chord-voice at-most-as-in-chord-voice :voices voices
 				   :redundant-constraints? redundant-constraints? :timepoints timepoints :input-mode input-mode
 				   :gracenotes? gracenotes? :rule-type rule-type :weight weight
 				   ;; Unique element of this rule
@@ -517,6 +523,7 @@ See constrain-number-of-sim-pitches"
 					  (pitch-number 2)
 					  (condition :min) ; options: :min, :equal, :max
 					  (rests-mode :reduce-no) ; options: :reduce-no, :ignore
+					  (at-most-as-in-chord-voice NIL)
 					  (key #'identity)
 					  (voices '(0 1))
 					  (redundant-constraints? :voice-accumulation)
@@ -525,12 +532,13 @@ See constrain-number-of-sim-pitches"
 					  (gracenotes? :no_grace) ; options: :no_grace, :gracenotes
 					  (rule-type :true/false) ; options: :true/false :heur-switch
 					  (weight 1))
-  "Controls the number of simultaneous pitches or pitch-related parameters. Useful, for example, to require that all pitches of chord layer differ.
+  "Controls the number of simultaneous pitches or pitch-related parameters. Useful, for example, to require that pitches of a chord (expressed by multiple voices) differ.
 
 Args: 
   pitch-number (int): the number of the simultaneous pitches. The meaning of this setting depends on the argument condition.
   condition: Whether the number of simultaneous pitch should be at least the given pitch-number (:min), or exactly that number (:equal), or at most that number (:max). 
   rests-mode: If set to :reduce-no, then the number of simultaneous rests is subtracted from pitch-number. For example, if there is only a single tone at a certain time and all other voices have rests, this rule can still be fulfilled. By contrast, if rests-mode is set to :ignore, then the remaining simultaneous pitch classes must still fullfil the condition expressed by the arguments pitch-number and condition.
+  at-most-as-in-chord-voice (int or NIL): if set to an int, this int is the voice number of the chord voice (the underlying harmony). If set, the number of simultaneous pitches is limited to the number of chord tones in the underlying harmony.
   key (unary function): function expecting a pitch and somehow transforming the pitch. The condition will be applied to results of the key function. Example: if key computes the pitch class, the constraint controls the number of simultaneous pitch classes.
   voices: the list of voices to which the rule is applied.
   redundant-constraints? (:all-voice-combinations, :voice-accumulation or NIL): If non-NIL, redundant constraints with subsets of voices and with a reduced pitch-number are also applied to cause fails earlier and thus speed up the search. The setting :voice-accumulation applies redundant constraints for the combinations (voice1 voice2), (voice1 voice2 voice3) ..., but not (voice2 voice3) etc. This is suitable when voices are visited in increasing order of voice IDs (Cluster Engine engine variable), which is the Cluster Engine default. The setting :all-voice-combinations applies redundant constraints to all possible voice subsets instead.
@@ -544,7 +552,8 @@ Other arguments are inherited from r-pitch-pitch."
 		    (destructuring-bind (&key voices-subset number-subset) args
 		      (list voices-subset number-subset)
 		      (constrain-number-of-sim-pitches-aux
-		       :pitch-number number-subset :condition condition :rests-mode rests-mode :key key :voices voices-subset
+		       :pitch-number number-subset :condition condition :rests-mode rests-mode
+		       :at-most-as-in-chord-voice at-most-as-in-chord-voice :key key :voices voices-subset
 		       :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
 		       :rule-type rule-type :weight weight)))
 		  ;; Create args voices-subset number-subset for all incl. redundant constraints
@@ -578,7 +587,8 @@ Other arguments are inherited from r-pitch-pitch."
 							      :number-subset ,no)))
 				  ))))
       (constrain-number-of-sim-pitches-aux
-       :pitch-number pitch-number :condition condition :rests-mode rests-mode :key key :voices voices
+       :pitch-number pitch-number :condition condition :rests-mode rests-mode
+       :at-most-as-in-chord-voice at-most-as-in-chord-voice :key key :voices voices
        :timepoints timepoints :input-mode input-mode :gracenotes? gracenotes?
        :rule-type rule-type :weight weight)))
 
@@ -587,6 +597,7 @@ Other arguments are inherited from r-pitch-pitch."
 					      (pitch-number 2)
 					      (condition :min) ; options: :min, :equal, :max
 					      (rests-mode :reduce-no) ; options: :reduce-no, :ignore
+					      (at-most-as-in-chord-voice NIL)
 					      (key #'identity)
 					      (voices '(0 1))
 					      (timepoints '(0))
@@ -595,23 +606,57 @@ Other arguments are inherited from r-pitch-pitch."
 					      (rule-type :true/false) ; options: :true/false :heur-switch
 					      (weight 1))
   "See constrain-number-of-sim-pitches"
-  (r-pitch-pitch (lambda (pitches)
-		     ;; TODO: assert pitch-number <= (length pitches)
-		     (let ((actual-number (case rests-mode
-					    (:reduce-no (- pitch-number
-							   (length (remove NIL pitches :test (complement #'eql)))))
-					    (:ignore pitch-number)))
-			   (harm (remove-duplicates (mapcar key
-							    ;; take out rests
-							    (remove NIL pitches)))))
-		       (if harm				  
-			   (funcall (ecase condition
-				      (:min #'>=)
-				      (:equal #'=)
-				      (:max #'<=))
-				    (length harm) actual-number)
-			   t)))
-		 voices
+  (r-pitch-pitch (lambda (all-pitches)
+		   (let* (;; underlying harmony in chord voice
+			  (chord-pitches (if at-most-as-in-chord-voice
+					     (remove-duplicates
+					      ;; Remove rests in underlying harmony
+					      (remove NIL (mapcar key (first all-pitches))))
+					     NIL))
+			  (pitches (if at-most-as-in-chord-voice
+				       (rest all-pitches)
+				       all-pitches))
+			  ;; Take rests into account
+			  (aux-number (case rests-mode
+					(:reduce-no (- pitch-number
+						       (length (remove NIL pitches :test (complement #'eql)))))
+					(:ignore pitch-number)))
+			  ;; (actual-number aux-number)
+			  ;; Take underlying harmony into account
+			  #|
+			  ?? BUG: If the var actual-number does not
+			  depend on chord-pitches (see version above
+			  in comments), but arg
+			  at-most-as-in-chord-voice is used, i.e. if
+			  the only difference is that the lambda given
+			  to r-pitch-pitch additionally receives the
+			  underlying harmony as arg, then seemingly
+			  that results in a change that fixes some
+			  CSPs. Something is very fishy here -- I must
+			  misunderstand something here.
+			  |#
+			  (actual-number (if (and chord-pitches ;; there is an underlying harmony (no rest)
+			  			  at-most-as-in-chord-voice)
+			  		     (min (length chord-pitches) aux-number)
+			  		     aux-number))
+			  ;; The chord resulting from the pitches in voices
+			  (harm (remove-duplicates (mapcar key
+							   ;; take out rests
+							   (remove NIL pitches)))))
+		     (assert (<= pitch-number (length pitches)))
+		     ;; (when (> ce::*current-loop-n* 50000)
+		     ;; 	 (break))
+		     (if harm				  
+			 (funcall (ecase condition
+				    (:min #'>=)
+				    (:equal #'=)
+				    (:max #'<=))
+				  (length harm) actual-number)
+			 t)))
+		 (if at-most-as-in-chord-voice
+		     (cons at-most-as-in-chord-voice
+			   voices)
+		     voices)
 		 timepoints
 		 input-mode
 		 gracenotes?
@@ -724,7 +769,9 @@ Other arguments are inherited from r-pitch-pitch.
 				       (abs raw-interval)
 				       raw-interval)))
 		    (and (if min-interval
-			     (<= min-interval interval)
+			     (progn
+			       ;; (break)	
+			       (<= min-interval interval))
 			     T)
 			 (if max-interval 
 			     (<= interval max-interval)

@@ -450,7 +450,7 @@ BUG: mode :rhythm not yet working.
  - n (int): The first n notes are affected (if n is greater than the length of profile, then that length is taken). If 0, then n is disregarded and the full length of the profile is used. 
  - start (int): At which note position to start applying this rule (zero-based). 
 
-Note: If this rule is used with pitch motifs, then only the selection of the 1st motif note is controlled by the rule. In other words, this rule is likely note suitable with motif domains.
+Note: If this rule is used with pitch motifs, then only the selection of the 1st motif note is controlled by the rule. In other words, this rule is likely not suitable with motif domains.
 "
   (let* ((my-voices (tu:ensure-list voices))
 	 (voices-length (length my-voices)))    
